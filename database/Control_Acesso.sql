@@ -1,4 +1,4 @@
--- Control de acceso (Parte 2): logins, usuarios y permisos
+-- Control de acceso: logins, usuarios y permisos
 USE VidaUniversitariaDB
 GO
 

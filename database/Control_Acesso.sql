@@ -1,9 +1,4 @@
 -- Control de acceso (Parte 2): logins, usuarios y permisos
--- EJECUTAR DESPUES DEL SCRIPT DE TABLAS (01), porque usa el esquema VidaU
--- y la tabla Usuario (para proteger la columna Contrasena).
--- Si algun dia se vuelve a crear la base de datos desde cero con el script 01,
--- hay que volver a correr este script: los usuarios de la base se eliminan con
--- ella (los logins del servidor se conservan y no se vuelven a crear).
 USE VidaUniversitariaDB
 GO
 

@@ -6,10 +6,7 @@ Proyecto Final de **Bases de Datos II** (BTI23), Escuela de Tecnologías de la I
 
 ## Integrantes
 
-| Kendall Quesada |kenmendoza2712-ops |
-| Maverick Garcia | MavGarciaB |
-| Yorleni Rivera | Yorleni-06 |
-| Diego Marchena | DiegoMarchena046 |
+| Kendall Quesada |kenmendoza2712-ops || Maverick Garcia | MavGarciaB || Yorleni Rivera | Yorleni-06 || Diego Marchena | DiegoMarchena046 |
 
 ## Descripción
 

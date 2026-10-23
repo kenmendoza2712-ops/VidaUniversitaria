@@ -8,16 +8,24 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Agregar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON; -- ROLLBACK AUTOMATICO ANTE CUALQUIER ERROR DE EJECUCION
     BEGIN TRY
-        IF EXISTS (SELECT 1 FROM VidaU.Profesor WHERE Correo = @Correo) -- VALIDA CORREO UNICO
+        BEGIN TRANSACTION;
+ 
+        -- UPDLOCK + HOLDLOCK BLOQUEA EL RANGO PARA QUE OTRA SESION NO INSERTE EL MISMO CORREO A LA VEZ
+        IF EXISTS (SELECT 1 FROM VidaU.Profesor WITH (UPDLOCK, HOLDLOCK) WHERE Correo = @Correo) -- VALIDA CORREO UNICO
             THROW 50001, 'Ya existe un profesor con ese correo.', 1;
  
         INSERT INTO VidaU.Profesor (Nombre, Apellido, Correo)
         VALUES (@Nombre, @Apellido, @Correo);
  
-        SELECT SCOPE_IDENTITY() AS idProfesor;
+        DECLARE @idNuevo INT = SCOPE_IDENTITY(); -- ID GENERADO POR IDENTITY
+ 
+        COMMIT TRANSACTION;
+        SELECT @idNuevo AS idProfesor;
     END TRY
     BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION; -- DESHACE TODO SI ALGO FALLO
         THROW;
     END CATCH
 END
@@ -32,11 +40,14 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Actualizar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM VidaU.Profesor WHERE idProfesor = @idProfesor)
+        BEGIN TRANSACTION;
+ 
+        IF NOT EXISTS (SELECT 1 FROM VidaU.Profesor WITH (UPDLOCK, HOLDLOCK) WHERE idProfesor = @idProfesor) -- BLOQUEA EL REGISTRO A MODIFICAR
             THROW 50002, 'El profesor indicado no existe.', 1;
  
-        IF EXISTS (SELECT 1 FROM VidaU.Profesor WHERE Correo = @Correo AND idProfesor <> @idProfesor)
+        IF EXISTS (SELECT 1 FROM VidaU.Profesor WITH (UPDLOCK, HOLDLOCK) WHERE Correo = @Correo AND idProfesor <> @idProfesor) -- EXCLUYE EL PROPIO REGISTRO
             THROW 50001, 'Ya existe otro profesor con ese correo.', 1;
  
         UPDATE VidaU.Profesor
@@ -44,8 +55,11 @@ BEGIN
             Apellido = @Apellido,
             Correo = @Correo
         WHERE idProfesor = @idProfesor;
+ 
+        COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
         THROW;
     END CATCH
 END
@@ -57,14 +71,21 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Eliminar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM VidaU.Profesor WHERE idProfesor = @idProfesor)
+        BEGIN TRANSACTION;
+ 
+        IF NOT EXISTS (SELECT 1 FROM VidaU.Profesor WITH (UPDLOCK, HOLDLOCK) WHERE idProfesor = @idProfesor)
             THROW 50002, 'El profesor indicado no existe.', 1;
  
         DELETE FROM VidaU.Profesor WHERE idProfesor = @idProfesor;
+ 
+        COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
-        IF ERROR_NUMBER() = 547
+        DECLARE @Err INT = ERROR_NUMBER(); -- SE GUARDA ANTES DEL ROLLBACK
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        IF @Err = 547 -- ERROR DE LLAVE FORANEA
             THROW 50003, 'No se puede eliminar el profesor porque tiene registros relacionados.', 1;
         THROW;
     END CATCH
@@ -72,6 +93,7 @@ END
 GO
  
 -- Consulta un profesor por id, o todos si @idProfesor es NULL.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Consultar
     @idProfesor INT = NULL
 AS

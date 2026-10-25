@@ -1,0 +1,10 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Default" />
+    <BuildType Name="Release" />
+  </Configurations>
+  <Project Path="Vidauniversitaria.Api/Vidauniversitaria.Api.csproj" Id="73a995c4-d874-4c01-acd7-7961491994bb">
+    <BuildType Solution="Default|*" Project="Release" />
+  </Project>
+</Solution>

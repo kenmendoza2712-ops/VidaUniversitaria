@@ -10,21 +10,29 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Agregar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON; -- ROLLBACK AUTOMATICO ANTE CUALQUIER ERROR DE EJECUCION
     BEGIN TRY
         SET @Estado = ISNULL(@Estado, 'Activa');
  
-        IF @Estado NOT IN ('Activa','Inactiva') -- VALIDA LA REGLA DEL CHECK
+        IF @Estado NOT IN ('Activa','Inactiva') -- VALIDA LA REGLA DEL CHECK ANTES DE ABRIR LA TRANSACCION
             THROW 50005, 'El estado debe ser Activa o Inactiva.', 1;
  
-        IF EXISTS (SELECT 1 FROM VidaU.Universidad WHERE Correo = @Correo) -- VALIDA CORREO UNICO
+        BEGIN TRANSACTION;
+ 
+        -- UPDLOCK + HOLDLOCK BLOQUEA EL RANGO PARA QUE OTRA SESION NO INSERTE EL MISMO CORREO A LA VEZ
+        IF EXISTS (SELECT 1 FROM VidaU.Universidad WITH (UPDLOCK, HOLDLOCK) WHERE Correo = @Correo) -- VALIDA CORREO UNICO
             THROW 50001, 'Ya existe una universidad con ese correo.', 1;
  
         INSERT INTO VidaU.Universidad (Nombre, Correo, Estado, Telefono)
         VALUES (@Nombre, @Correo, @Estado, @Telefono);
  
-        SELECT SCOPE_IDENTITY() AS idUniversidad;
+        DECLARE @idNuevo INT = SCOPE_IDENTITY(); -- ID GENERADO POR IDENTITY
+ 
+        COMMIT TRANSACTION;
+        SELECT @idNuevo AS idUniversidad;
     END TRY
     BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION; -- DESHACE TODO SI ALGO FALLO
         THROW;
     END CATCH
 END
@@ -40,14 +48,17 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Actualizar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM VidaU.Universidad WHERE idUniversidad = @idUniversidad)
-            THROW 50002, 'La universidad indicada no existe.', 1;
- 
         IF @Estado NOT IN ('Activa','Inactiva')
             THROW 50005, 'El estado debe ser Activa o Inactiva.', 1;
  
-        IF EXISTS (SELECT 1 FROM VidaU.Universidad WHERE Correo = @Correo AND idUniversidad <> @idUniversidad)
+        BEGIN TRANSACTION;
+ 
+        IF NOT EXISTS (SELECT 1 FROM VidaU.Universidad WITH (UPDLOCK, HOLDLOCK) WHERE idUniversidad = @idUniversidad) -- BLOQUEA EL REGISTRO A MODIFICAR
+            THROW 50002, 'La universidad indicada no existe.', 1;
+ 
+        IF EXISTS (SELECT 1 FROM VidaU.Universidad WITH (UPDLOCK, HOLDLOCK) WHERE Correo = @Correo AND idUniversidad <> @idUniversidad) -- EXCLUYE EL PROPIO REGISTRO
             THROW 50001, 'Ya existe otra universidad con ese correo.', 1;
  
         UPDATE VidaU.Universidad
@@ -56,8 +67,11 @@ BEGIN
             Estado = @Estado,
             Telefono = @Telefono
         WHERE idUniversidad = @idUniversidad;
+ 
+        COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
         THROW;
     END CATCH
 END
@@ -69,14 +83,21 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Eliminar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM VidaU.Universidad WHERE idUniversidad = @idUniversidad)
+        BEGIN TRANSACTION;
+ 
+        IF NOT EXISTS (SELECT 1 FROM VidaU.Universidad WITH (UPDLOCK, HOLDLOCK) WHERE idUniversidad = @idUniversidad)
             THROW 50002, 'La universidad indicada no existe.', 1;
  
         DELETE FROM VidaU.Universidad WHERE idUniversidad = @idUniversidad;
+ 
+        COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
-        IF ERROR_NUMBER() = 547
+        DECLARE @Err INT = ERROR_NUMBER(); -- SE GUARDA ANTES DEL ROLLBACK
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        IF @Err = 547 -- ERROR DE LLAVE FORANEA
             THROW 50003, 'No se puede eliminar la universidad porque tiene registros relacionados.', 1;
         THROW;
     END CATCH
@@ -84,6 +105,7 @@ END
 GO
  
 -- Consulta una universidad por id, o todas si @idUniversidad es NULL.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Consultar
     @idUniversidad INT = NULL
 AS
@@ -95,3 +117,4 @@ BEGIN
     ORDER BY idUniversidad;
 END
 GO
+ 

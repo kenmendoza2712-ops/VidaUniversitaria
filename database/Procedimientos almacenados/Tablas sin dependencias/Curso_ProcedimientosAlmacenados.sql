@@ -8,16 +8,23 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Curso_Agregar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON; -- ROLLBACK AUTOMATICO ANTE CUALQUIER ERROR DE EJECUCION
     BEGIN TRY
-        IF @Creditos <= 0 -- VALIDA LA REGLA DEL CHECK ANTES DE INSERTAR
+        IF @Creditos <= 0 -- VALIDA LA REGLA DEL CHECK ANTES DE ABRIR LA TRANSACCION
             THROW 50006, 'Los créditos deben ser mayores a 0.', 1;
+ 
+        BEGIN TRANSACTION;
  
         INSERT INTO VidaU.Curso (Nombre, Descripcion, Creditos)
         VALUES (@Nombre, @Descripcion, @Creditos);
  
-        SELECT SCOPE_IDENTITY() AS idCurso;
+        DECLARE @idNuevo INT = SCOPE_IDENTITY(); -- ID GENERADO POR IDENTITY
+ 
+        COMMIT TRANSACTION;
+        SELECT @idNuevo AS idCurso;
     END TRY
     BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION; -- DESHACE TODO SI ALGO FALLO
         THROW;
     END CATCH
 END
@@ -32,20 +39,27 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Curso_Actualizar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM VidaU.Curso WHERE idCurso = @idCurso)
-            THROW 50002, 'El curso indicado no existe.', 1;
- 
         IF @Creditos <= 0
             THROW 50006, 'Los créditos deben ser mayores a 0.', 1;
+ 
+        BEGIN TRANSACTION;
+ 
+        -- UPDLOCK + HOLDLOCK BLOQUEA EL REGISTRO PARA QUE OTRA SESION NO LO ELIMINE O MODIFIQUE MIENTRAS SE ACTUALIZA
+        IF NOT EXISTS (SELECT 1 FROM VidaU.Curso WITH (UPDLOCK, HOLDLOCK) WHERE idCurso = @idCurso)
+            THROW 50002, 'El curso indicado no existe.', 1;
  
         UPDATE VidaU.Curso
         SET Nombre = @Nombre,
             Descripcion = @Descripcion,
             Creditos = @Creditos
         WHERE idCurso = @idCurso;
+ 
+        COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
         THROW;
     END CATCH
 END
@@ -57,14 +71,21 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Curso_Eliminar
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
     BEGIN TRY
-        IF NOT EXISTS (SELECT 1 FROM VidaU.Curso WHERE idCurso = @idCurso)
+        BEGIN TRANSACTION;
+ 
+        IF NOT EXISTS (SELECT 1 FROM VidaU.Curso WITH (UPDLOCK, HOLDLOCK) WHERE idCurso = @idCurso)
             THROW 50002, 'El curso indicado no existe.', 1;
  
         DELETE FROM VidaU.Curso WHERE idCurso = @idCurso;
+ 
+        COMMIT TRANSACTION;
     END TRY
     BEGIN CATCH
-        IF ERROR_NUMBER() = 547
+        DECLARE @Err INT = ERROR_NUMBER(); -- SE GUARDA ANTES DEL ROLLBACK
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        IF @Err = 547 -- ERROR DE LLAVE FORANEA
             THROW 50003, 'No se puede eliminar el curso porque tiene registros relacionados.', 1;
         THROW;
     END CATCH
@@ -72,6 +93,7 @@ END
 GO
  
 -- Consulta un curso por id, o todos si @idCurso es NULL.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Curso_Consultar
     @idCurso INT = NULL
 AS
@@ -83,3 +105,4 @@ BEGIN
     ORDER BY idCurso;
 END
 GO
+ 

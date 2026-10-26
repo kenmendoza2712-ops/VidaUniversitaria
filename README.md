@@ -66,7 +66,7 @@ Reglas principales del modelo:
 | Tipo | Cantidad | Detalle |
 |---|---|---|
 | Tablas | 19 | Esquema `VidaU` |
-| Procedimientos almacenados | 87 | CRUD por entidad, tablas puente, autenticación, matrícula, reseñas y consultas |
+| Procedimientos almacenados | 85 | CRUD por entidad, tablas puente, autenticación, matrícula, reseñas y consultas |
 | Funciones | 3 | `fn_Auth_IntentosFallidos`, `fn_Suscripcion_Vigente`, `fn_Profesor_Reputacion` |
 | Triggers | 2 | `trg_Suscripcion_ValidarTraslape` (regla de negocio), `trg_Resennia_AuditarEstado` (auditoría) |
 | Transacciones explícitas | 63 bloques | Operaciones de escritura con `BEGIN TRANSACTION`, `COMMIT` y `ROLLBACK` |

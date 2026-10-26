@@ -160,7 +160,7 @@ ORDER BY o.name;
 GO
 
 -- PRUEBAS MANUALES
--- EXEC VidaU.sp_Suscripcion_ConsultarVigencia;
--- EXEC VidaU.sp_Suscripcion_ConsultarVigencia @idUniversidad = 1;
--- EXEC VidaU.sp_Profesor_ConsultarReputacion;
--- EXEC VidaU.sp_Profesor_ConsultarReputacion @idProfesor = 1;
+EXEC VidaU.sp_Suscripcion_ConsultarVigencia;
+EXEC VidaU.sp_Suscripcion_ConsultarVigencia @idUniversidad = 1;
+EXEC VidaU.sp_Profesor_ConsultarReputacion;
+EXEC VidaU.sp_Profesor_ConsultarReputacion @idProfesor = 1;

@@ -16,14 +16,12 @@ Los estudiantes consultan y publican reseñas anónimas de las lecciones que cur
 
 ## Arquitectura
 
-El sistema sigue tres capas:
-
 ```
 Cliente (web / Postman)  →  API REST (.NET)  →  SQL Server
 ```
 
-- **Base de datos:** concentra toda la lógica de negocio mediante stored procedures, funciones y triggers.
-- **API REST:** solo recibe la petición HTTP, valida el token (JWT), ejecuta el stored procedure correspondiente y devuelve el resultado en JSON. No contiene lógica de negocio.
+- **Base de datos:** concentra la lógica de negocio mediante stored procedures, funciones y triggers.
+- **API REST (.NET):** recibe la petición HTTP, ejecuta el stored procedure correspondiente y devuelve el resultado en JSON. No contiene lógica de negocio.
 - **Cliente de demostración:** aplicación web o colección de Postman.
 
 ## Estructura del repositorio
@@ -31,11 +29,14 @@ Cliente (web / Postman)  →  API REST (.NET)  →  SQL Server
 ```
 VidaUniversitaria/
 ├── database/
-│   ├── 01_esquema_tablas.sql      Base de datos, esquema VidaU y 19 tablas
-│   ├── 02_control_acceso.sql      Logins, usuarios y permisos
-│   └── 03_procedures_*.sql        Stored procedures, funciones y triggers (en progreso)
-├── docs/                          Diagramas entidad-relación y relacional
-├── api/                           API REST en .NET (pendiente)
+│   ├── 01_esquema_tablas_y_seguridad.sql   Base de datos, esquema VidaU, 19 tablas, logins y usuarios
+│   ├── 02_control_acceso.sql               Logins, usuarios y permisos base
+│   ├── 03_todos_los_procedimientos.sql     85 procedimientos y 1 función de autenticación
+│   ├── Funciones.sql                       2 funciones y 2 reportes
+│   ├── Triggers.sql                        2 triggers
+│   ├── 04_datos_semilla_y_pruebas.sql      Datos de ejemplo y pruebas del flujo
+│   └── 05_permisos_por_procedimiento.sql   EXECUTE por procedimiento para cada rol
+├── api/                                    API REST en .NET
 └── README.md
 ```
 
@@ -56,8 +57,19 @@ Reglas principales del modelo:
 
 - Un estudiante solo puede dejar **una reseña por lección** (`UNIQUE` sobre estudiante y lección).
 - Las calificaciones van de **1 a 5**. La calificación general de una reseña es el promedio de sus `Evaluacion`.
+- Una universidad no puede tener dos suscripciones activas con fechas traslapadas (trigger).
 - Las contraseñas se guardan con `HASHBYTES`, nunca en texto plano.
 - `Plan` es palabra reservada de SQL Server, por eso se escribe `VidaU.[Plan]` con corchetes.
+
+## Objetos de la base de datos
+
+| Tipo | Cantidad | Detalle |
+|---|---|---|
+| Tablas | 19 | Esquema `VidaU` |
+| Procedimientos almacenados | 87 | CRUD por entidad, tablas puente, autenticación, matrícula, reseñas y consultas |
+| Funciones | 3 | `fn_Auth_IntentosFallidos`, `fn_Suscripcion_Vigente`, `fn_Profesor_Reputacion` |
+| Triggers | 2 | `trg_Suscripcion_ValidarTraslape` (regla de negocio), `trg_Resennia_AuditarEstado` (auditoría) |
+| Transacciones explícitas | 63 bloques | Operaciones de escritura con `BEGIN TRANSACTION`, `COMMIT` y `ROLLBACK` |
 
 ## Requisitos
 
@@ -67,18 +79,19 @@ Reglas principales del modelo:
 
 ## Instalación y ejecución
 
-1. Clonar el repositorio:
-   ```bash
-   git clone https://github.com/kenmendoza2712-ops/VidaUniversitaria.git
-   ```
-2. Abrir SSMS y conectarse a la instancia de SQL Server.
-3. Ejecutar **en orden** los scripts de la carpeta `database/`:
-   1. `01_esquema_tablas.sql`: crea la base de datos `VidaUniversitariaDB`, el esquema `VidaU` y las 19 tablas.
-   2. `02_control_acceso.sql`: crea los logins, usuarios y permisos.
-   3. `03_procedures_*.sql`: crea los stored procedures, funciones y triggers (cuando estén disponibles).
-4. Confirmar que no hubo errores. Cada script termina con un mensaje de confirmación.
+Ejecutar **en este orden** los scripts de la carpeta `database/`, siempre con SSMS conectado a la instancia:
 
-Si se vuelve a crear la base de datos desde cero, hay que volver a correr `02_control_acceso.sql`: los usuarios de la base se eliminan con ella, aunque los logins del servidor se conservan.
+1. `01_esquema_tablas_y_seguridad.sql`: crea la base de datos `VidaUniversitariaDB`, el esquema `VidaU`, las 19 tablas, los logins y los usuarios.
+2. `02_control_acceso.sql`: permisos base de los usuarios.
+3. `03_todos_los_procedimientos.sql`: 85 procedimientos y la función de autenticación.
+4. `Funciones.sql`: funciones y reportes de vigencia y reputación.
+5. `Triggers.sql`: triggers de suscripciones y auditoría.
+6. `04_datos_semilla_y_pruebas.sql`: datos de ejemplo y pruebas del flujo. Se ejecuta una sola vez.
+7. `05_permisos_por_procedimiento.sql`: `EXECUTE` por procedimiento para `app_user` y `app_readonly`, y pruebas de permisos.
+
+Cada script termina con una consulta de verificación. Si una verificación no coincide con lo esperado, detenerse y revisar antes de seguir.
+
+Si se vuelve a crear la base de datos desde cero, hay que volver a correr los scripts 02 a 05: los usuarios y permisos de la base se eliminan con ella, aunque los logins del servidor se conservan.
 
 ## Control de acceso
 
@@ -86,42 +99,46 @@ El API nunca se conecta con `sa` ni con permisos de `dbo`. Cada usuario tiene lo
 
 | Usuario SQL | Rol en la aplicación | Permisos |
 |---|---|---|
-| `app_admin` | Administración y coordinación | `EXECUTE` sobre el esquema `VidaU` |
-| `app_user` | Estudiante | `EXECUTE` solo sobre los procedures de estudiante |
-| `app_readonly` | Coordinador de carrera | `SELECT` sobre el esquema (sin acceso a `Usuario.Contrasena`) |
+| `app_admin` | Administración y coordinación | `EXECUTE` sobre todo el esquema `VidaU` |
+| `app_user` | Estudiante | `EXECUTE` solo sobre 17 procedimientos (autenticación, catálogos, matrícula y reputación) |
+| `app_readonly` | Coordinador de carrera | `EXECUTE` sobre 10 procedimientos de consulta. No puede leer `Usuario.Contrasena` |
 
 Ningún usuario puede hacer `INSERT`, `UPDATE` ni `DELETE` directo sobre las tablas: toda escritura pasa por un stored procedure.
 
-Las contraseñas de los logins se definen en `02_control_acceso.sql`. Son de ejemplo para el entorno de clase y deben cambiarse en cualquier otro entorno. La cadena de conexión del API irá en variables de entorno o en un archivo `.env` excluido del repositorio.
+Las contraseñas de los logins son de ejemplo para el entorno de clase y deben cambiarse en cualquier otro entorno. La cadena de conexión del API irá en variables de entorno o en un archivo `.env` excluido del repositorio.
+
+El API usa dos conexiones y elige según el rol del token: `app_user` para login, registro y acciones de estudiante, y `app_admin` para administración.
 
 ## Convenciones
 
-- **Stored procedures:** `usp_<Entidad>_<Acción>`, por ejemplo `usp_Resennia_Crear`.
+- **Stored procedures:** `usp_<Entidad>_<Acción>` en la documentación, y `sp_<Entidad>_<Acción>` en el código, por ejemplo `sp_Resennia_Agregar`.
 - **Restricciones:** prefijos `PK_`, `FK_`, `UQ_`, `CK_` y `DF_` seguidos del nombre de la tabla.
-- Cada stored procedure inicia con `SET NOCOUNT ON`, usa `TRY...CATCH` y lleva un comentario de cabecera con nombre, descripción, parámetros, autor y fecha.
+- **Códigos de error:** `50001` duplicado, `50002` no existe, `50003` tiene registros relacionados, `50023` reseña duplicada, `50030` credenciales incorrectas, `50040` suscripción traslapada.
+- Los procedimientos usan `SET NOCOUNT ON` y `TRY...CATCH`.
 
 ## Avance del proyecto
 
 | Revisión | Semana | Avance esperado | Estado |
 |---|---|---|---|
-| R1 | 3 | Propuesta aprobada, modelo ER, base de datos creada, usuarios y roles | En curso |
-| R2 | 5 | 40 % de los procedures (incluye autenticación) y API ejecutando al menos uno | Pendiente |
-| R3 | 8 | 80 % de los procedures y transacciones explícitas | Pendiente |
+| R1 | 3 | Propuesta aprobada, modelo ER, base de datos, usuarios y roles | Completada |
+| R2 | 5 | 40 % de los procedimientos (incluye autenticación) y API ejecutando al menos uno | En presentación |
+| R3 | 8 | 80 % de los procedimientos y transacciones explícitas | En presentación |
 | R4 | 12 | Sistema completo y planes de ejecución documentados | Pendiente |
 | Final | 15 | Todos los entregables, manual técnico y defensa oral | Pendiente |
 
 Lista de verificación:
 
 - [x] Modelo entidad-relación y modelo relacional
-- [x] Esquema de 19 tablas (`01_esquema_tablas.sql`)
-- [x] Control de acceso (`02_control_acceso.sql`)
-- [ ] Stored procedures de usuarios y login
-- [ ] Stored procedures del resto de entidades
-- [ ] Transacciones explícitas (mínimo 3)
-- [ ] Funciones (mínimo 2) y trigger (mínimo 1)
+- [x] Esquema de 19 tablas y control de acceso
+- [x] Stored procedures de autenticación, usuarios y CRUD por entidad
+- [x] Funciones (mínimo 2) y triggers (mínimo 1)
+- [x] Transacciones explícitas (mínimo 3)
+- [x] Permisos por procedimiento para cada rol
+- [ ] Procedimientos de reseñas públicas (publicar, leer solo visibles)
+- [ ] Reportes de analítica
 - [ ] Optimización de consultas con planes de ejecución
-- [ ] API REST con JWT
-- [ ] Manual técnico y presentación
+- [ ] API REST con JWT y autorización por rol
+- [ ] Manual técnico y presentación final
 
 ## Flujo de trabajo en equipo
 

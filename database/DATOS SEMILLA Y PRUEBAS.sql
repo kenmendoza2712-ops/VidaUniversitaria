@@ -7,6 +7,7 @@
    SE EJECUTA UNA SOLA VEZ: si ya hay roles cargados, el script avisa y se detiene.
    Las contrasenas de abajo son de ejemplo, solo para el entorno de clase.
    ============================================================================ */
+
 USE VidaUniversitariaDB
 GO
 

@@ -76,7 +76,7 @@ ORDER BY o.name;
 GO
 
 -- PRUEBAS MANUALES 
--- Trigger 1: la segunda suscripcion activa traslapada debe fallar con el error 50040
+--Trigger 1: la segunda suscripcion activa traslapada debe fallar con el error 50040
   -- EXEC VidaU.sp_Suscripcion_Agregar @idUniversidad = 1, @idPlan = 1, @FechaInicio = '2026-01-01', @FechaFin = '2026-12-31';
   -- EXEC VidaU.sp_Suscripcion_Agregar @idUniversidad = 1, @idPlan = 1, @FechaInicio = '2026-06-01', @FechaFin = NULL; -- ERROR 50040
 -- Trigger 2: cambiar el estado de una resennia y revisar Bitacora

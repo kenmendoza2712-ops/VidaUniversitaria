@@ -1,3 +1,11 @@
 <Solution>
-  <Project Path="database/API/Vidauniversitaria.Api/Vidauniversitaria.Api.csproj" />
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Default" />
+    <BuildType Name="Release" />
+  </Configurations>
+  <Project Path="../../../../../../source/repos/NewRepo/database/API/Vidauniversitaria.Api/Vidauniversitaria.Api.csproj">
+    <BuildType Solution="Default|*" Project="Release" />
+    <Build Solution="Default|*" Project="false" />
+  </Project>
 </Solution>

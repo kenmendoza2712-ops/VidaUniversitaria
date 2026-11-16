@@ -1,135 +1,123 @@
 # Vida Universitaria
 
-Plataforma SaaS de reseñas de profesores y cursos, con analítica por carrera, facultad y periodo para las universidades.
+Plataforma SaaS para consultar y publicar reseñas de cursos y profesores, con información académica organizada por universidad, sede, carrera y lección.
 
-Proyecto Final de **Bases de Datos II** (BTI23), Escuela de Tecnologías de la Información y Comunicación, Universidad Latina de Costa Rica.
+Proyecto final de **Bases de Datos II (BTI23)**, Universidad Latina de Costa Rica.
 
-## Integrantes
+## Estado actual
 
-| Kendall Quesada |kenmendoza2712-ops || Maverick Garcia | MavGarciaB || Yorleni Rivera | Yorleni-06 || Diego Marchena | DiegoMarchena046 |
-
-## Descripción
-
-Los estudiantes consultan y publican reseñas anónimas de las lecciones que cursaron (un curso con un profesor y un horario concretos). Las universidades acceden a una sección analítica con promedios, rankings y evolución de las calificaciones.
-
-**Modelo de negocio:** freemium. Los estudiantes usan la plataforma gratis; las universidades pagan una suscripción (plan mensual o anual) para acceder a la analítica.
-
-## Arquitectura
-
-El sistema sigue tres capas:
-
-```
-Cliente (web / Postman)  →  API REST (.NET)  →  SQL Server
-```
-
-- **Base de datos:** concentra toda la lógica de negocio mediante stored procedures, funciones y triggers.
-- **API REST:** solo recibe la petición HTTP, valida el token (JWT), ejecuta el stored procedure correspondiente y devuelve el resultado en JSON. No contiene lógica de negocio.
-- **Cliente de demostración:** aplicación web o colección de Postman.
+- Base de datos `VidaUniversitariaDB` con el esquema `VidaU` y sus tablas.
+- Procedimientos almacenados consolidados en `database/Procedimientos almacenados/Procedimientos Completos/PROCEDIMIENTOS COMPLETOS.sql`.
+- Funciones, triggers y datos de demostración incluidos en la carpeta `database/`.
+- API ASP.NET Core sobre .NET 10 en `database/API/Vidauniversitaria.Api/`.
+- `GET /api/universidades` ejecuta `VidaU.sp_Universidad_Consultar` y devuelve JSON.
+- La autenticación JWT y la autorización por roles están pendientes de implementación en la API.
 
 ## Estructura del repositorio
 
-```
-VidaUniversitaria/
+```text
+NewRepo/
 ├── database/
-│   ├── 01_esquema_tablas.sql      Base de datos, esquema VidaU y 19 tablas
-│   ├── 02_control_acceso.sql      Logins, usuarios y permisos
-│   └── 03_procedures_*.sql        Stored procedures, funciones y triggers (en progreso)
-├── docs/                          Diagramas entidad-relación y relacional
-├── api/                           API REST en .NET (pendiente)
+│   ├── API/
+│   │   └── Vidauniversitaria.Api/        Código fuente de la API
+│   ├── Procedimientos almacenados/
+│   │   ├── Procedimientos Completos/
+│   │   │   └── PROCEDIMIENTOS COMPLETOS.sql
+│   │   └── ...                            Archivos organizados por entidad
+│   ├── ESQUEMA Y TABLAS.sql               Base de datos, esquema y tablas
+│   ├── Control_Acceso.sql                 Logins, usuarios y permisos base
+│   ├── Funciones.sql                      Funciones y procedimiento auxiliar
+│   ├── Triggers.sql                       Triggers de reglas y auditoría
+│   ├── Permisos_API.sql                   Permiso EXECUTE para el endpoint actual
+│   └── DATOS SEMILLA Y PRUEBAS.sql        Datos de demostración y pruebas SQL
+├── Diagramas/                              Diagramas del modelo
+├── NewRepo.slnx                            Solución de Visual Studio
 └── README.md
 ```
 
-## Modelo de datos
-
-Todos los objetos viven en el esquema **`VidaU`** (no se usa `dbo`). El modelo tiene **19 tablas**:
-
-| Grupo | Tablas |
-|---|---|
-| Catálogos | `Rol`, `Plan`, `Universidad`, `Carrera`, `Curso`, `Profesor` |
-| Usuarios y auditoría | `Usuario`, `Estudiante`, `Bitacora` |
-| Estructura académica | `Sede`, `Leccion` |
-| Suscripciones | `Suscripcion` |
-| Tablas puente (relaciones M:N) | `Universidad_Profesor`, `Sede_Carrera`, `Carrera_Curso`, `Carrera_Estudiante` |
-| Participación estudiantil | `Matricula`, `Resennia`, `Evaluacion` |
-
-Reglas principales del modelo:
-
-- Un estudiante solo puede dejar **una reseña por lección** (`UNIQUE` sobre estudiante y lección).
-- Las calificaciones van de **1 a 5**. La calificación general de una reseña es el promedio de sus `Evaluacion`.
-- Las contraseñas se guardan con `HASHBYTES`, nunca en texto plano.
-- `Plan` es palabra reservada de SQL Server, por eso se escribe `VidaU.[Plan]` con corchetes.
-
 ## Requisitos
 
-- SQL Server 2019 o superior (o SQL Server Express)
-- SQL Server Management Studio (SSMS)
-- Una cuenta con permisos de `sysadmin` en la instancia (necesaria para crear la base de datos y los logins)
+- SQL Server 2019 o superior (SQL Server Express sirve para desarrollo local).
+- SQL Server Management Studio (SSMS).
+- Visual Studio Community 2026 con la carga de trabajo de ASP.NET y web, y el SDK de .NET 10.
+- Acceso al repositorio de GitHub.
+- Una cuenta administrativa local de SQL Server para crear la base de datos y los logins durante la instalación.
 
-## Instalación y ejecución
+## Preparar SQL Server
 
-1. Clonar el repositorio:
-   ```bash
-   git clone https://github.com/kenmendoza2712-ops/VidaUniversitaria.git
+Conéctate a tu instancia local en SSMS usando una cuenta con permisos para crear bases de datos y logins. Ejecuta los siguientes archivos en este orden:
+
+1. `database/ESQUEMA Y TABLAS.sql`: crea `VidaUniversitariaDB`, el esquema `VidaU` y las tablas. Se ejecuta una vez en una instancia limpia.
+2. `database/Control_Acceso.sql`: crea los logins y usuarios de aplicación. Requiere la base creada.
+3. `database/Procedimientos almacenados/Procedimientos Completos/PROCEDIMIENTOS COMPLETOS.sql`: crea el conjunto consolidado de procedimientos almacenados. **Ejecuta este archivo consolidado, no vuelvas a ejecutar además los archivos individuales de procedimientos.**
+4. `database/Funciones.sql`: crea las funciones adicionales y el procedimiento auxiliar de vigencia de suscripción.
+5. `database/Triggers.sql`: crea las reglas de traslape de suscripciones y la auditoría de cambios de estado de reseñas.
+6. `database/Permisos_API.sql`: concede a `app_user` permiso para ejecutar el procedimiento que consume la API actual. Ejecútalo después de crear los procedimientos.
+7. `database/DATOS SEMILLA Y PRUEBAS.sql`: carga datos ficticios y ejecuta pruebas. Córrelo una sola vez en una base de desarrollo vacía y después de instalar los procedimientos, funciones y triggers. Si falla a mitad, no lo repitas sin revisar la base; puede haber cargado parte de los datos.
+
+Los archivos individuales de `database/Procedimientos almacenados/` se conservan para consulta y organización por entidad. Para una instalación desde cero, utiliza el script consolidado indicado en el paso 3.
+
+La cuenta administrativa de SSMS ejecuta los scripts de instalación y semillas. La API se conecta con `app_user`, no con `sa` ni `dbo`.
+
+## Configurar y ejecutar la API
+
+1. Abre `NewRepo.slnx` desde la raíz del repositorio en Visual Studio.
+2. En el Explorador de soluciones, haz clic derecho en `Vidauniversitaria.Api` y selecciona **Administrar secretos de usuario**.
+3. En el archivo de secretos local, configura una cadena de conexión para tu propia instancia. Ejemplo:
+
+   ```json
+   {
+     "ConnectionStrings": {
+       "VidaU": "Server=SERVIDOR;Database=VidaUniversitariaDB;User Id=app_user;Password=CLAVE_LOCAL;Encrypt=True;TrustServerCertificate=True;"
+     }
+   }
    ```
-2. Abrir SSMS y conectarse a la instancia de SQL Server.
-3. Ejecutar **en orden** los scripts de la carpeta `database/`:
-   1. `01_esquema_tablas.sql`: crea la base de datos `VidaUniversitariaDB`, el esquema `VidaU` y las 19 tablas.
-   2. `02_control_acceso.sql`: crea los logins, usuarios y permisos.
-   3. `03_procedures_*.sql`: crea los stored procedures, funciones y triggers (cuando estén disponibles).
-4. Confirmar que no hubo errores. Cada script termina con un mensaje de confirmación.
 
-Si se vuelve a crear la base de datos desde cero, hay que volver a correr `02_control_acceso.sql`: los usuarios de la base se eliminan con ella, aunque los logins del servidor se conservan.
+   Reemplaza `SERVIDOR` por el nombre que muestra SSMS y `CLAVE_LOCAL` por la contraseña local de `app_user`. En instancias con nombre, representa la barra invertida como `\\` en JSON, por ejemplo `SERVIDOR\\SQLEXPRESS`.
+
+4. Selecciona el perfil `https` y pulsa **F5**.
+5. Prueba `https://localhost:7170/api/universidades` (si Visual Studio indica otro puerto, usa el que muestra allí).
+
+La respuesta es un arreglo JSON. `[]` significa que el procedimiento se ejecutó, pero no hay universidades cargadas. Después de ejecutar los datos semilla, debe aparecer la universidad de ejemplo.
+
+Los secretos de usuario son locales y no se guardan en Git. No agregues contraseñas personales ni archivos `secrets.json` al repositorio. Las credenciales que aparecen en los scripts SQL son solo para el entorno académico de demostración.
 
 ## Control de acceso
 
-El API nunca se conecta con `sa` ni con permisos de `dbo`. Cada usuario tiene los permisos mínimos que necesita:
+El script `Control_Acceso.sql` define `app_admin`, `app_user` y `app_readonly`, con permisos separados. `Permisos_API.sql` concede a `app_user` solo el `EXECUTE` requerido por el endpoint de consulta de universidades. Los permisos adicionales deben agregarse de forma puntual cuando se implementen y protejan nuevos endpoints.
 
-| Usuario SQL | Rol en la aplicación | Permisos |
-|---|---|---|
-| `app_admin` | Administración y coordinación | `EXECUTE` sobre el esquema `VidaU` |
-| `app_user` | Estudiante | `EXECUTE` solo sobre los procedures de estudiante |
-| `app_readonly` | Coordinador de carrera | `SELECT` sobre el esquema (sin acceso a `Usuario.Contrasena`) |
+## Pruebas disponibles
 
-Ningún usuario puede hacer `INSERT`, `UPDATE` ni `DELETE` directo sobre las tablas: toda escritura pasa por un stored procedure.
+`DATOS SEMILLA Y PRUEBAS.sql` valida varios flujos llamando a los procedimientos almacenados. Entre sus resultados esperados están el error `50030` para contraseña incorrecta, el error `50023` para una reseña duplicada y un promedio de `4.50` para tres evaluaciones. Esos errores son parte de pruebas esperadas, no indican por sí solos que la ejecución haya fallado.
 
-Las contraseñas de los logins se definen en `02_control_acceso.sql`. Son de ejemplo para el entorno de clase y deben cambiarse en cualquier otro entorno. La cadena de conexión del API irá en variables de entorno o en un archivo `.env` excluido del repositorio.
+La ruta `GET /api/universidades` es la comprobación de integración actual entre HTTP, la API y SQL Server.
 
-## Convenciones
+## Lineamientos y próximos entregables
 
-- **Stored procedures:** `usp_<Entidad>_<Acción>`, por ejemplo `usp_Resennia_Crear`.
-- **Restricciones:** prefijos `PK_`, `FK_`, `UQ_`, `CK_` y `DF_` seguidos del nombre de la tabla.
-- Cada stored procedure inicia con `SET NOCOUNT ON`, usa `TRY...CATCH` y lleva un comentario de cabecera con nombre, descripción, parámetros, autor y fecha.
+El diseño mantiene la lógica de negocio en SQL Server. La API debe limitarse a autenticar y autorizar la petición, ejecutar el procedimiento correspondiente y serializar la respuesta. El trabajo pendiente para completar los entregables incluye, entre otros puntos:
 
-## Avance del proyecto
+- Autenticación JWT con expiración máxima de ocho horas y autorización de endpoints por rol.
+- Mapeo consistente de errores de SQL Server a códigos HTTP.
+- Cliente de demostración, que puede ser una colección de Postman.
+- Selección de tres consultas críticas y documentación de sus planes antes y después de optimizarlas.
+- Manual técnico en PDF de al menos 20 páginas y presentación con demostración en vivo.
 
-| Revisión | Semana | Avance esperado | Estado |
-|---|---|---|---|
-| R1 | 3 | Propuesta aprobada, modelo ER, base de datos creada, usuarios y roles | En curso |
-| R2 | 5 | 40 % de los procedures (incluye autenticación) y API ejecutando al menos uno | Pendiente |
-| R3 | 8 | 80 % de los procedures y transacciones explícitas | Pendiente |
-| R4 | 12 | Sistema completo y planes de ejecución documentados | Pendiente |
-| Final | 15 | Todos los entregables, manual técnico y defensa oral | Pendiente |
+Cada nuevo script SQL debe llevar una cabecera que explique su propósito, requisitos previos, parámetros o datos que utiliza, orden de ejecución, efectos esperados y advertencias sobre si puede repetirse.
 
-Lista de verificación:
+## Trabajo en equipo
 
-- [x] Modelo entidad-relación y modelo relacional
-- [x] Esquema de 19 tablas (`01_esquema_tablas.sql`)
-- [x] Control de acceso (`02_control_acceso.sql`)
-- [ ] Stored procedures de usuarios y login
-- [ ] Stored procedures del resto de entidades
-- [ ] Transacciones explícitas (mínimo 3)
-- [ ] Funciones (mínimo 2) y trigger (mínimo 1)
-- [ ] Optimización de consultas con planes de ejecución
-- [ ] API REST con JWT
-- [ ] Manual técnico y presentación
-
-## Flujo de trabajo en equipo
+Antes de empezar, actualiza la copia local:
 
 ```bash
-git pull                                   # traer los cambios antes de empezar
+git pull
+```
+
+Después de revisar los cambios:
+
+```bash
 git add .
-git commit -m "Descripción corta del avance"
+git commit -m "Describe el cambio realizado"
 git push
 ```
 
-Cada integrante hace commits con su propia cuenta, de modo que el historial refleje la contribución de cada uno.
+Coordina quién modifica cada archivo para evitar conflictos. Cada integrante debe contribuir con su propia cuenta de GitHub.

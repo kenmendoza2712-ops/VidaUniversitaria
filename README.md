@@ -172,7 +172,7 @@ Las contraseñas de los logins son de ejemplo para el entorno de clase y deben c
 |---|---:|---|---|
 | R1 | 3 | Propuesta aprobada, modelo ER, base de datos, usuarios y roles | Completada |
 | R2 | 5 | 40 % de los procedimientos (incluye autenticación) y API ejecutando al menos uno | Completada |
-| R3 | 8 | 80 % de los procedimientos y transacciones explícitas | En presentación |
+| R3 | 8 | 80 % de los procedimientos y transacciones explícitas | Completada |
 | R4 | 12 | Sistema completo y planes de ejecución documentados | Pendiente |
 | Final | 15 | Todos los entregables, manual técnico y defensa oral | Pendiente |
 
@@ -181,10 +181,12 @@ Lista de verificación:
 - [x] Modelo entidad-relación y modelo relacional
 - [x] Esquema de 19 tablas y control de acceso
 - [x] Stored procedures de autenticación, usuarios y CRUD por entidad
-- [x] Funciones (mínimo 2) y triggers (mínimo 1)
-- [x] Transacciones explícitas (mínimo 3)
-- [x] Permisos por procedimiento para cada rol
+- [x] Al menos el 40 % de los procedimientos almacenados implementados, incluidos los de autenticación (R2)
 - [x] API REST ejecuta al menos un procedimiento almacenado (R2)
+- [x] Al menos el 80 % de los procedimientos almacenados implementados (R3)
+- [x] Transacciones explícitas implementadas (63 bloques)
+- [x] Funciones (mínimo 2) y triggers (mínimo 1)
+- [x] Permisos por procedimiento para cada rol
 - [ ] Procedimientos de reseñas públicas (publicar, leer solo visibles)
 - [ ] Reportes de analítica
 - [ ] Optimización de consultas con planes de ejecución

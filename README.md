@@ -6,7 +6,7 @@ Proyecto Final de **Bases de Datos II** (BTI23), Escuela de Tecnologías de la I
 
 ## Integrantes
 
-| Kendall Quesada | @kenmendoza2712-ops || Maverick García | MavGarciaB || Yorleni Rivera | Yorleni-06 || Diego Marchena | DiegoMarchena06 |
+| Kendall Quesada | @kenmendoza2712-ops || Maverick García | MavGarciaB || Yorleni Rivera | Yorleni-06 || Diego Marchena | DiegoMarchena06 
 
 ## Descripción
 
@@ -20,8 +20,10 @@ Los estudiantes consultan y publican reseñas anónimas de las lecciones que cur
 Cliente (Swagger UI / Postman)  →  API REST (.NET 10)  →  SQL Server
 ```
 
-- **Base de datos:** concentra la lógica de negocio mediante stored procedures, funciones y triggers.
+- **Base de datos:** concentra la lógica de negocio mediante procedimientos almacenados, funciones y triggers.
 - **API REST (.NET 10):** recibe peticiones HTTP, ejecuta procedimientos almacenados mediante Entity Framework Core y devuelve los resultados en JSON. La lógica de acceso a datos está separada de los controladores y de `Program.cs`.
+- **Modelos EF Core:** las entidades y `VidaUniversitariaScaffoldContext` se generaron desde el esquema `VidaU` mediante Scaffold. Las cuatro tablas puente se representan como relaciones muchos a muchos en el contexto, por lo que no tienen una clase de entidad independiente.
+- **Acceso a datos:** el servicio de universidades utiliza el contexto generado para ejecutar `VidaU.sp_Universidad_Consultar`. Las operaciones de negocio continúan pasando por procedimientos almacenados; los modelos no se utilizan para modificar directamente las tablas.
 - **Documentación de la API:** OpenAPI y Swagger UI permiten consultar y probar los endpoints disponibles.
 - **Cliente de demostración:** Swagger UI o una colección de Postman.
 
@@ -36,16 +38,21 @@ VidaUniversitaria/
 │   │       ├── Controllers/
 │   │       │   └── UniversidadesController.cs
 │   │       ├── Data/
-│   │       │   └── VidaUniversitariaDbContext.cs
+│   │       │   └── Scaffold/
+│   │       │       └── VidaUniversitariaScaffoldContext.cs
 │   │       ├── DTOs/
 │   │       │   └── UniversidadRespuestaDto.cs
+│   │       ├── Models/
+│   │       │   └── Scaffold/
+│   │       │       └── 15 clases de entidad generadas
 │   │       ├── Services/
 │   │       │   ├── IUniversidadService.cs
 │   │       │   └── UniversidadService.cs
 │   │       ├── Properties/
 │   │       │   └── launchSettings.json
 │   │       ├── Program.cs
-│   │       └── Vidauniversitaria.Api.csproj
+│   │       ├── Vidauniversitaria.Api.csproj
+│   │       └── Vidauniversitaria.Api.http
 │   ├── Procedimientos almacenados/
 │   ├── Control_Acceso.sql
 │   ├── DATOS SEMILLA Y PRUEBAS.sql
@@ -59,11 +66,11 @@ VidaUniversitaria/
 └── README.md
 ```
 
-Los archivos de configuración local del API no deben contener contraseñas reales ni cadenas de conexión sensibles.
+Los archivos de configuración local del API no deben contener contraseñas reales ni cadenas de conexión sensibles. La cadena local se guarda mediante **Secretos de usuario** de ASP.NET Core.
 
 ## Modelo de datos
 
-Todos los objetos viven en el esquema **`VidaU`** (no se usa `dbo`). El modelo tiene **19 tablas**:
+Todos los objetos viven en el esquema **`VidaU`**; no se utiliza `dbo`. El modelo tiene **19 tablas**:
 
 | Grupo | Tablas |
 
@@ -73,6 +80,8 @@ Todos los objetos viven en el esquema **`VidaU`** (no se usa `dbo`). El modelo t
 | Suscripciones | `Suscripcion` |
 | Tablas puente (relaciones M:N) | `Universidad_Profesor`, `Sede_Carrera`, `Carrera_Curso`, `Carrera_Estudiante` |
 | Participación estudiantil | `Matricula`, `Resennia`, `Evaluacion` |
+
+El proceso de Scaffold generó **15 clases de entidad**. Las cuatro tablas puente se encuentran configuradas como relaciones muchos a muchos en `VidaUniversitariaScaffoldContext`.
 
 Reglas principales del modelo:
 
@@ -97,6 +106,7 @@ Reglas principales del modelo:
 - SQL Server 2019 o superior (o SQL Server Express)
 - SQL Server Management Studio (SSMS)
 - Visual Studio Community con el SDK de .NET 10
+- NuGet: proveedor de SQL Server y herramientas de Entity Framework Core 10
 - Una cuenta con permisos de `sysadmin` en la instancia (necesaria para crear la base de datos y los logins)
 
 ## Instalación y ejecución de la base de datos
@@ -119,20 +129,20 @@ Si se vuelve a crear la base de datos desde cero, hay que volver a ejecutar los 
 
 El proyecto del API está en:
 
-`
+```
 database/API/Vidauniversitaria.Api/
-`
+```
 
 La solución de Visual Studio está en la raíz del repositorio: `NewRepo.slnx`.
 
-La cadena de conexión se obtiene mediante la configuración `ConnectionStrings:VidaU`. Para desarrollo local se guarda en **Secretos de usuario** de ASP.NET Core; no debe incluirse una contraseña real en GitHub.
+La cadena de conexión se obtiene mediante la configuración `ConnectionStrings:VidaU`. Para desarrollo local se guarda en **Secretos de usuario**; no debe incluirse una contraseña real en GitHub.
 
 En Visual Studio:
 
 1. Abrir `NewRepo.slnx`.
 2. Seleccionar el perfil de ejecución `https`.
 3. Ejecutar el proyecto.
-4. Swagger UI se abre automáticamente en el navegador. Si no se abre, se puede ingresar a `https://localhost:7170/swagger`.
+4. Swagger UI se abre automáticamente en el navegador. Si no se abre, ingresar a `https://localhost:7170/swagger`.
 
 El API incluye actualmente este endpoint:
 
@@ -143,15 +153,17 @@ El API incluye actualmente este endpoint:
 
 El procedimiento permite recibir `NULL` para listar todas las universidades o un identificador para filtrar por una universidad específica. El resultado se transforma en un DTO y se devuelve como JSON.
 
+El endpoint fue ejecutado desde Swagger y respondió **HTTP 200** con los datos de la universidad de prueba.
+
 ## Control de acceso
 
-La base de datos define usuarios con permisos mínimos según su función:
+Los siguientes permisos describen lo configurado en los scripts actuales:
 
-| Usuario SQL | Rol en la aplicación | Permisos |
+| Usuario SQL | Rol en la aplicación | Permisos configurados |
 
-| `app_admin` | Administración y coordinación | `EXECUTE` sobre los procedimientos administrativos autorizados |
-| `app_user` | Estudiante | `EXECUTE` solo sobre procedimientos autorizados para estudiantes |
-| `app_readonly` | Coordinador de carrera | `EXECUTE` sobre procedimientos de consulta. No puede leer `Usuario.Contrasena` |
+| `app_admin` | Administración | `EXECUTE` sobre los procedimientos del esquema autorizados en `Control_Acceso.sql` |
+| `app_user` | Estudiante | No tiene permisos generales sobre el esquema. `Permisos_API.sql` le otorga `EXECUTE` sobre `VidaU.sp_Universidad_Consultar` para el endpoint actual |
+| `app_readonly` | Coordinador de carrera | Permisos de lectura (`SELECT`) sobre el esquema `VidaU`, excepto la columna `Usuario.Contrasena` |
 
 Ningún usuario de aplicación debe hacer `INSERT`, `UPDATE` ni `DELETE` directo sobre las tablas: las escrituras pasan por procedimientos almacenados.
 
@@ -161,15 +173,15 @@ Las contraseñas de los logins son de ejemplo para el entorno de clase y deben c
 
 ## Convenciones
 
-- **Stored procedures:** `usp_<Entidad>_<Acción>` en la documentación y `sp_<Entidad>_<Acción>` en el código, por ejemplo `sp_Resennia_Agregar`.
+- **Stored procedures:** `sp_<Entidad>_<Acción>` en el código, por ejemplo `sp_Resennia_Agregar`.
 - **Restricciones:** prefijos `PK_`, `FK_`, `UQ_`, `CK_` y `DF_` seguidos del nombre de la tabla.
 - **Códigos de error:** `50001` duplicado, `50002` no existe, `50003` tiene registros relacionados, `50023` reseña duplicada, `50030` credenciales incorrectas, `50040` suscripción traslapada.
-- Los procedimientos usan `SET NOCOUNT ON` y `TRY...CATCH`.
+- Los procedimientos de escritura usan `SET NOCOUNT ON` y bloques `TRY...CATCH`.
 
 ## Avance del proyecto
 
 | Revisión | Semana | Avance esperado | Estado |
-|---|---:|---|---|
+
 | R1 | 3 | Propuesta aprobada, modelo ER, base de datos, usuarios y roles | Completada |
 | R2 | 5 | 40 % de los procedimientos (incluye autenticación) y API ejecutando al menos uno | Completada |
 | R3 | 8 | 80 % de los procedimientos y transacciones explícitas | Completada |
@@ -180,6 +192,7 @@ Lista de verificación:
 
 - [x] Modelo entidad-relación y modelo relacional
 - [x] Esquema de 19 tablas y control de acceso
+- [x] Modelos y contexto de EF Core generados mediante Scaffold
 - [x] Stored procedures de autenticación, usuarios y CRUD por entidad
 - [x] Al menos el 40 % de los procedimientos almacenados implementados, incluidos los de autenticación (R2)
 - [x] API REST ejecuta al menos un procedimiento almacenado (R2)
@@ -195,11 +208,20 @@ Lista de verificación:
 
 ## Flujo de trabajo en equipo
 
-```bash
-git pull
+Antes de comenzar a trabajar, integrar los cambios más recientes del repositorio:
+
+```
+git pull --no-rebase origin master
+```
+
+Después de hacer los cambios, guardarlos y subirlos:
+
+```
 git add .
 git commit -m "Descripción corta del avance"
-git push
+git push origin master
 ```
+
+Si el `push` es rechazado porque GitHub tiene cambios nuevos, ejecutar `git pull --no-rebase origin master`, resolver cualquier conflicto y volver a hacer `git push origin master`.
 
 Cada integrante hace commits con su propia cuenta, de modo que el historial refleje la contribución de cada uno.

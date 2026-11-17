@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Vidauniversitaria.Api.Data;
 using Vidauniversitaria.Api.Services;
 using NSwag.AspNetCore;
+using Vidauniversitaria.Api.Data.Scaffold;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +22,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 }
 
 // Registra el contexto para que EF Core pueda conectarse a SQL Server.
-builder.Services.AddDbContext<VidaUniversitariaDbContext>(options =>
+builder.Services.AddDbContext<VidaUniversitariaScaffoldContext>(options =>
     options.UseSqlServer(connectionString));
 
 // Crea una instancia del servicio por cada solicitud HTTP.

@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Vidauniversitaria.Api.Data;
+using Vidauniversitaria.Api.Data.Scaffold;
 using Vidauniversitaria.Api.DTOs;
 
 namespace Vidauniversitaria.Api.Services;
@@ -9,9 +9,9 @@ namespace Vidauniversitaria.Api.Services;
 /// </summary>
 public sealed class UniversidadService : IUniversidadService
 {
-    private readonly VidaUniversitariaDbContext _context;
+    private readonly VidaUniversitariaScaffoldContext _context;
 
-    public UniversidadService(VidaUniversitariaDbContext context)
+    public UniversidadService(VidaUniversitariaScaffoldContext context)
     {
         _context = context;
     }

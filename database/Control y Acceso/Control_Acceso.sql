@@ -85,7 +85,7 @@ GO
 
 -- app_readonly: solo SELECT sobre el esquema, para consultar vistas
 -- analíticas cuando existan. No tiene EXECUTE sobre procedures.
-GRANT SELECT ON SCHEMA :: VidaU TO app_readonly;
+REVOKE SELECT ON SCHEMA :: VidaU FROM app_readonly;
 GO
 
 -- Bloqueo explícito: ningún usuario de aplicación puede modificar datos

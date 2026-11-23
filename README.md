@@ -1,6 +1,6 @@
 # Vida Universitaria
 
-Plataforma SaaS de reseñas de profesores y cursos, con analítica por carrera, facultad y periodo para las universidades.
+Plataforma SaaS de reseñas de profesores y cursos, con analítica para las universidades.
 
 Proyecto Final de **Bases de Datos II** (BTI23), Escuela de Tecnologías de la Información y Comunicación, Universidad Latina de Costa Rica.
 
@@ -10,9 +10,9 @@ Proyecto Final de **Bases de Datos II** (BTI23), Escuela de Tecnologías de la I
 
 ## Descripción
 
-Los estudiantes consultan y publican reseñas anónimas de las lecciones que cursaron (un curso con un profesor y un horario concretos). Las universidades acceden a una sección analítica con promedios, rankings y evolución de las calificaciones.
+Los estudiantes consultan y publican reseñas anónimas de las lecciones que cursaron, asociadas a un curso, un profesor y un horario. Las universidades pueden consultar información analítica sobre las calificaciones.
 
-**Modelo de negocio:** freemium. Los estudiantes usan la plataforma gratis; las universidades pagan una suscripción (plan mensual o anual) para acceder a la analítica.
+**Modelo de negocio:** freemium. Los estudiantes usan la plataforma gratis; las universidades pagan una suscripción, mensual o anual, para acceder a la analítica.
 
 ## Arquitectura
 
@@ -21,11 +21,11 @@ Cliente (Swagger UI / Postman)  →  API REST (.NET 10)  →  SQL Server
 ```
 
 - **Base de datos:** concentra la lógica de negocio mediante procedimientos almacenados, funciones y triggers.
-- **API REST (.NET 10):** recibe peticiones HTTP, ejecuta procedimientos almacenados mediante Entity Framework Core y devuelve los resultados en JSON. La lógica de acceso a datos está separada de los controladores y de `Program.cs`.
-- **Modelos EF Core:** las entidades y `VidaUniversitariaScaffoldContext` se generaron desde el esquema `VidaU` mediante Scaffold. Las cuatro tablas puente se representan como relaciones muchos a muchos en el contexto, por lo que no tienen una clase de entidad independiente.
-- **Acceso a datos:** el servicio de universidades utiliza el contexto generado para ejecutar `VidaU.sp_Universidad_Consultar`. Las operaciones de negocio continúan pasando por procedimientos almacenados; los modelos no se utilizan para modificar directamente las tablas.
+- **API REST (.NET 10):** recibe peticiones HTTP, ejecuta procedimientos almacenados mediante Entity Framework Core y devuelve los resultados en JSON. Los controladores delegan el acceso a datos en servicios; `Program.cs` registra las dependencias y configura la aplicación.
+- **Modelos EF Core:** las entidades y `VidaUniversitariaScaffoldContext` se generaron desde el esquema `VidaU` mediante Scaffold. Las cuatro tablas puente están representadas como relaciones muchos a muchos en el contexto, por lo que no tienen una clase de entidad independiente.
+- **Acceso a datos:** `UniversidadService` utiliza el contexto generado para ejecutar `VidaU.sp_Universidad_Consultar`. Las operaciones de negocio se realizan mediante procedimientos almacenados; el API no modifica directamente las tablas.
 - **Documentación de la API:** OpenAPI y Swagger UI permiten consultar y probar los endpoints disponibles.
-- **Cliente de demostración:** Swagger UI o una colección de Postman.
+- **Cliente de demostración:** Swagger UI o Postman.
 
 ## Estructura del repositorio
 
@@ -34,6 +34,7 @@ VidaUniversitaria/
 ├── Diagramas/
 ├── database/
 │   ├── API/
+│   │   ├── Permisos_API.sql
 │   │   └── Vidauniversitaria.Api/
 │   │       ├── Controllers/
 │   │       │   └── UniversidadesController.cs
@@ -43,8 +44,7 @@ VidaUniversitaria/
 │   │       ├── DTOs/
 │   │       │   └── UniversidadRespuestaDto.cs
 │   │       ├── Models/
-│   │       │   └── Scaffold/
-│   │       │       └── 15 clases de entidad generadas
+│   │       │   └── Scaffold/ (15 clases de entidad)
 │   │       ├── Services/
 │   │       │   ├── IUniversidadService.cs
 │   │       │   └── UniversidadService.cs
@@ -53,20 +53,33 @@ VidaUniversitaria/
 │   │       ├── Program.cs
 │   │       ├── Vidauniversitaria.Api.csproj
 │   │       └── Vidauniversitaria.Api.http
+│   ├── Control y Acceso/
+│   │   └── Control_Acceso.sql
+│   ├── Funciones y Triggers/
+│   │   ├── Funciones.sql
+│   │   └── Triggers.sql
 │   ├── Procedimientos almacenados/
-│   ├── Control_Acceso.sql
-│   ├── DATOS SEMILLA Y PRUEBAS.sql
-│   ├── ESQUEMA Y TABLAS.sql
-│   ├── Funciones.sql
-│   ├── Permisos_API.sql
-│   └── Triggers.sql
+│   │   ├── 20_Autenticacion/
+│   │   ├── Procedimientos Completos/
+│   │   │   └── PROCEDIMIENTOS COMPLETOS.sql
+│   │   ├── Tablas de cuarto nivel/
+│   │   ├── Tablas de primer nivel/
+│   │   ├── Tablas de segundo nivel/
+│   │   ├── Tablas de tercer nivel/
+│   │   ├── Tablas puente/
+│   │   └── Tablas sin dependencias/
+│   ├── Pruebas/
+│   │   └── DATOS SEMILLA Y PRUEBAS.sql
+│   └── Tablas/
+│       ├── ESQUEMA Y TABLAS.sql
+│       └── Tabla_*.sql
 ├── .gitattributes
 ├── .gitignore
 ├── NewRepo.slnx
 └── README.md
 ```
 
-Los archivos de configuración local del API no deben contener contraseñas reales ni cadenas de conexión sensibles. La cadena local se guarda mediante **Secretos de usuario** de ASP.NET Core.
+Los archivos de configuración local del API no deben contener contraseñas reales ni cadenas de conexión sensibles. La conexión de desarrollo se configura mediante **Secretos de usuario** de ASP.NET Core.
 
 ## Modelo de datos
 
@@ -81,24 +94,24 @@ Todos los objetos viven en el esquema **`VidaU`**; no se utiliza `dbo`. El model
 | Tablas puente (relaciones M:N) | `Universidad_Profesor`, `Sede_Carrera`, `Carrera_Curso`, `Carrera_Estudiante` |
 | Participación estudiantil | `Matricula`, `Resennia`, `Evaluacion` |
 
-El proceso de Scaffold generó **15 clases de entidad**. Las cuatro tablas puente se encuentran configuradas como relaciones muchos a muchos en `VidaUniversitariaScaffoldContext`.
+El proceso de Scaffold generó **15 clases de entidad**. Las cuatro tablas puente se configuran como relaciones muchos a muchos en `VidaUniversitariaScaffoldContext`.
 
 Reglas principales del modelo:
 
-- Un estudiante solo puede dejar **una reseña por lección** (`UNIQUE` sobre estudiante y lección).
-- Las calificaciones van de **1 a 5**. La calificación general de una reseña es el promedio de sus `Evaluacion`.
-- Una universidad no puede tener dos suscripciones activas con fechas traslapadas (trigger).
+- Un estudiante solo puede dejar **una reseña por lección** mediante una restricción `UNIQUE` sobre estudiante y lección.
+- Las calificaciones van de **1 a 5**. La calificación general de una reseña se obtiene del promedio de sus `Evaluacion`.
+- Una universidad no puede tener dos suscripciones activas con fechas traslapadas; esta regla se valida mediante un trigger.
 - Las contraseñas se guardan con `HASHBYTES`, nunca en texto plano.
 - `Plan` es palabra reservada de SQL Server, por eso se escribe `VidaU.[Plan]` con corchetes.
 
 ## Objetos de la base de datos
 
 | Tipo | Cantidad | Detalle |
-
+|---|---:|---|
 | Tablas | 19 | Esquema `VidaU` |
-| Procedimientos almacenados | 87 | 85 procedimientos en `Procedimientos almacenados/` y 2 reportes en `Funciones.sql` |
+| Procedimientos almacenados | 87 | 85 procedimientos por entidad y autenticación, más 2 reportes en `Funciones.sql` |
 | Funciones | 3 | `fn_Auth_IntentosFallidos`, `fn_Suscripcion_Vigente`, `fn_Profesor_Reputacion` |
-| Triggers | 2 | `trg_Suscripcion_ValidarTraslape` (regla de negocio), `trg_Resennia_AuditarEstado` (auditoría) |
+| Triggers | 2 | `trg_Suscripcion_ValidarTraslape` y `trg_Resennia_AuditarEstado` |
 | Transacciones explícitas | 63 bloques | Operaciones de escritura con `BEGIN TRANSACTION`, `COMMIT` y `ROLLBACK` |
 
 ## Requisitos
@@ -106,24 +119,26 @@ Reglas principales del modelo:
 - SQL Server 2019 o superior (o SQL Server Express)
 - SQL Server Management Studio (SSMS)
 - Visual Studio Community con el SDK de .NET 10
-- NuGet: proveedor de SQL Server y herramientas de Entity Framework Core 10
-- Una cuenta con permisos de `sysadmin` en la instancia (necesaria para crear la base de datos y los logins)
+- Paquetes NuGet de SQL Server y Entity Framework Core 10
+- Una cuenta con permisos de `sysadmin` en la instancia para crear la base de datos y los logins
 
 ## Instalación y ejecución de la base de datos
 
-Ejecutar los scripts de la carpeta `database/` en SSMS, conectado a la instancia de SQL Server y a la base de datos indicada por cada script:
+Ejecutar los scripts en SSMS, conectado a la instancia de SQL Server. Para una base nueva, seguir el orden de dependencias:
 
-1. `ESQUEMA Y TABLAS.sql`: crea la base de datos `VidaUniversitariaDB`, el esquema `VidaU` y las 19 tablas.
-2. `Control_Acceso.sql`: configura logins, usuarios y permisos base.
-3. Los scripts de `Procedimientos almacenados/`: crean los procedimientos del proyecto.
-4. `Funciones.sql`: crea las funciones y los procedimientos de reportes.
-5. `Triggers.sql`: crea los triggers de suscripciones y auditoría.
-6. `DATOS SEMILLA Y PRUEBAS.sql`: inserta datos de ejemplo y prueba el flujo. Se ejecuta una sola vez sobre una base recién preparada.
-7. `Permisos_API.sql`: configura permisos de ejecución por procedimiento y prueba los permisos correspondientes.
+1. `database/Tablas/ESQUEMA Y TABLAS.sql`: crea `VidaUniversitariaDB`, el esquema `VidaU` y las 19 tablas.
+2. `database/Control y Acceso/Control_Acceso.sql`: configura los logins, usuarios y permisos base.
+3. Los scripts individuales de `database/Procedimientos almacenados/`: crean los procedimientos. Ejecutarlos según sus dependencias.
+4. `database/Funciones y Triggers/Funciones.sql`: crea las funciones y los procedimientos de reportes.
+5. `database/Funciones y Triggers/Triggers.sql`: crea los triggers de suscripciones y auditoría.
+6. `database/Pruebas/DATOS SEMILLA Y PRUEBAS.sql`: inserta datos de ejemplo y prueba el flujo. Se ejecuta una sola vez sobre una base recién preparada.
+7. `database/API/Permisos_API.sql`: concede los permisos requeridos por el endpoint actual.
 
-Si los archivos de procedimientos tienen dependencias entre sí, deben ejecutarse en el orden requerido por esas dependencias. Cada script debe revisarse y ejecutarse según la configuración de la instancia antes de continuar con el siguiente.
+La carpeta `database/Tablas/` también contiene scripts individuales por tabla. Para crear todas las tablas desde cero, usar el script consolidado `ESQUEMA Y TABLAS.sql`; no ejecutar además los scripts individuales sobre las mismas tablas.
 
-Si se vuelve a crear la base de datos desde cero, hay que volver a ejecutar los scripts de control de acceso, procedimientos, funciones, triggers, datos semilla y permisos. Los usuarios y permisos de base de datos se eliminan con ella, aunque los logins del servidor pueden conservarse.
+La carpeta de procedimientos contiene archivos organizados por entidad y un archivo consolidado. Para la instalación, usar los scripts individuales en el orden de dependencias; evitar ejecutar el consolidado además de los individuales.
+
+Si se vuelve a crear la base desde cero, hay que volver a ejecutar el esquema, control de acceso, procedimientos, funciones, triggers, datos semilla y permisos. Los usuarios y permisos de base de datos se eliminan con ella, aunque los logins del servidor pueden conservarse.
 
 ## Ejecución del API
 
@@ -135,47 +150,47 @@ database/API/Vidauniversitaria.Api/
 
 La solución de Visual Studio está en la raíz del repositorio: `NewRepo.slnx`.
 
-La cadena de conexión se obtiene mediante la configuración `ConnectionStrings:VidaU`. Para desarrollo local se guarda en **Secretos de usuario**; no debe incluirse una contraseña real en GitHub.
+La cadena de conexión se obtiene mediante `ConnectionStrings:VidaU`. Para desarrollo local se configura en **Secretos de usuario**; no se debe incluir una contraseña real en GitHub.
 
 En Visual Studio:
 
 1. Abrir `NewRepo.slnx`.
 2. Seleccionar el perfil de ejecución `https`.
 3. Ejecutar el proyecto.
-4. Swagger UI se abre automáticamente en el navegador. Si no se abre, ingresar a `https://localhost:7170/swagger`.
+4. Swagger UI se abre automáticamente. Si no se abre, ingresar a `https://localhost:7170/swagger`.
 
-El API incluye actualmente este endpoint:
+El API incluye actualmente estos endpoints:
 
 | Método y ruta | Función |
 
 | `GET /api/universidades` | Consulta todas las universidades mediante `VidaU.sp_Universidad_Consultar`. |
-| `GET /api/universidades?idUniversidad=1` | Consulta la universidad cuyo identificador es `1` mediante el mismo procedimiento. |
+| `GET /api/universidades?idUniversidad=1` | Consulta la universidad con identificador `1` mediante el mismo procedimiento. |
 
-El procedimiento permite recibir `NULL` para listar todas las universidades o un identificador para filtrar por una universidad específica. El resultado se transforma en un DTO y se devuelve como JSON.
+El procedimiento recibe `NULL` para listar todas las universidades o un identificador para filtrar por una universidad. El resultado se transforma en un DTO y se devuelve como JSON.
 
 El endpoint fue ejecutado desde Swagger y respondió **HTTP 200** con los datos de la universidad de prueba.
 
 ## Control de acceso
 
-Los siguientes permisos describen lo configurado en los scripts actuales:
+Estos son los permisos configurados actualmente en los scripts:
 
-| Usuario SQL | Rol en la aplicación | Permisos configurados |
+| Usuario SQL | Función prevista | Permisos configurados |
 
-| `app_admin` | Administración | `EXECUTE` sobre los procedimientos del esquema autorizados en `Control_Acceso.sql` |
-| `app_user` | Estudiante | No tiene permisos generales sobre el esquema. `Permisos_API.sql` le otorga `EXECUTE` sobre `VidaU.sp_Universidad_Consultar` para el endpoint actual |
-| `app_readonly` | Coordinador de carrera | Permisos de lectura (`SELECT`) sobre el esquema `VidaU`, excepto la columna `Usuario.Contrasena` |
+| `app_admin` | Administración | `EXECUTE` sobre el esquema `VidaU`; las escrituras directas en tablas están denegadas. |
+| `app_user` | Estudiante | Sin permisos generales sobre el esquema. `Permisos_API.sql` concede `EXECUTE` sobre `VidaU.sp_Universidad_Consultar` para el endpoint actual. |
+| `app_readonly` | Consulta | `SELECT` sobre el esquema `VidaU`, excepto la columna `Usuario.Contrasena`; las escrituras directas están denegadas. |
 
-Ningún usuario de aplicación debe hacer `INSERT`, `UPDATE` ni `DELETE` directo sobre las tablas: las escrituras pasan por procedimientos almacenados.
+La API no hace operaciones `INSERT`, `UPDATE` ni `DELETE` directamente sobre las tablas. Las operaciones de negocio deben pasar por procedimientos almacenados.
 
-**Estado actual de la API:** utiliza la cadena de conexión `VidaU` configurada localmente mediante Secretos de usuario. El endpoint de consulta de universidades ejecuta un procedimiento almacenado. La API todavía no selecciona una conexión según el rol de un token, ni implementa JWT o autorización por roles.
+**Estado actual de la API:** utiliza la conexión `VidaU` configurada localmente mediante Secretos de usuario. El endpoint de consulta de universidades ejecuta un procedimiento almacenado. La API todavía no selecciona una conexión según el rol de un token ni implementa JWT o autorización por roles.
 
-Las contraseñas de los logins son de ejemplo para el entorno de clase y deben cambiarse en cualquier otro entorno. No se deben subir contraseñas ni cadenas de conexión con credenciales al repositorio.
+Las contraseñas que aparecen en el script de control de acceso son de ejemplo para el entorno de clase. No se deben reutilizar fuera de ese entorno.
 
 ## Convenciones
 
 - **Stored procedures:** `sp_<Entidad>_<Acción>` en el código, por ejemplo `sp_Resennia_Agregar`.
 - **Restricciones:** prefijos `PK_`, `FK_`, `UQ_`, `CK_` y `DF_` seguidos del nombre de la tabla.
-- **Códigos de error:** `50001` duplicado, `50002` no existe, `50003` tiene registros relacionados, `50023` reseña duplicada, `50030` credenciales incorrectas, `50040` suscripción traslapada.
+- **Códigos de error:** `50001` duplicado, `50002` no existe, `50003` tiene registros relacionados, `50023` reseña duplicada, `50030` credenciales incorrectas y `50040` suscripción traslapada.
 - Los procedimientos de escritura usan `SET NOCOUNT ON` y bloques `TRY...CATCH`.
 
 ## Avance del proyecto
@@ -186,42 +201,44 @@ Las contraseñas de los logins son de ejemplo para el entorno de clase y deben c
 | R2 | 5 | 40 % de los procedimientos (incluye autenticación) y API ejecutando al menos uno | Completada |
 | R3 | 8 | 80 % de los procedimientos y transacciones explícitas | Completada |
 | R4 | 12 | Sistema completo y planes de ejecución documentados | Pendiente |
-| Final | 15 | Todos los entregables, manual técnico y defensa oral | Pendiente |
+| Final | 15 | Entregables, manual técnico y defensa oral | Pendiente |
 
 Lista de verificación:
 
 - [x] Modelo entidad-relación y modelo relacional
-- [x] Esquema de 19 tablas y control de acceso
-- [x] Modelos y contexto de EF Core generados mediante Scaffold
-- [x] Stored procedures de autenticación, usuarios y CRUD por entidad
-- [x] Al menos el 40 % de los procedimientos almacenados implementados, incluidos los de autenticación (R2)
+- [x] Esquema de 19 tablas
+- [x] Modelos y contexto EF Core generados mediante Scaffold
+- [x] Procedimientos almacenados de autenticación, usuarios y CRUD por entidad
+- [x] Al menos el 40 % de los procedimientos almacenados, incluidos los de autenticación (R2)
 - [x] API REST ejecuta al menos un procedimiento almacenado (R2)
-- [x] Al menos el 80 % de los procedimientos almacenados implementados (R3)
+- [x] Al menos el 80 % de los procedimientos almacenados (R3)
 - [x] Transacciones explícitas implementadas (63 bloques)
 - [x] Funciones (mínimo 2) y triggers (mínimo 1)
-- [x] Permisos por procedimiento para cada rol
-- [ ] Procedimientos de reseñas públicas (publicar, leer solo visibles)
+- [x] Logins, usuarios y permisos base configurados
+- [ ] Permisos mínimos por procedimiento y rol para todas las operaciones del API
+- [ ] Procedimientos de reseñas públicas (publicar y leer solo visibles)
 - [ ] Reportes de analítica
-- [ ] Optimización de consultas con planes de ejecución
+- [ ] Optimización de consultas y documentación de planes de ejecución
 - [ ] API REST con JWT y autorización por rol
 - [ ] Manual técnico y presentación final
 
 ## Flujo de trabajo en equipo
 
-Antes de comenzar a trabajar, integrar los cambios más recientes del repositorio:
+Antes de comenzar a trabajar, integrar los cambios recientes del repositorio:
 
 ```
 git pull --no-rebase origin master
 ```
 
-Después de hacer los cambios, guardarlos y subirlos:
+Después de hacer los cambios, revisar el estado, agregar solo los archivos del proyecto que correspondan, crear el commit y subirlo:
 
 ```
-git add .
+git status
+git add <archivo-o-carpeta>
 git commit -m "Descripción corta del avance"
 git push origin master
 ```
 
 Si el `push` es rechazado porque GitHub tiene cambios nuevos, ejecutar `git pull --no-rebase origin master`, resolver cualquier conflicto y volver a hacer `git push origin master`.
 
-Cada integrante hace commits con su propia cuenta, de modo que el historial refleje la contribución de cada uno.
+Cada integrante debe hacer commits con su propia cuenta, de modo que el historial refleje su contribución.

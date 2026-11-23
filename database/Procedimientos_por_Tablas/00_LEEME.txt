@@ -1,0 +1,3 @@
+Ejecutar en orden numerico (01 a 20) despues de crear tablas y Control_Acceso.sql.
+Un script por tabla; 20 agrupa autenticacion (fn_Auth_IntentosFallidos primero).
+Son reejecutables (CREATE OR ALTER). No ejecutar junto con PROCEDIMIENTOS COMPLETOS.sql (es el mismo contenido consolidado).

@@ -3,7 +3,7 @@ GO
 
 /* "Bitacora" */
  
--- Agrega un registro de bitácora. Respeta FK_Bitacora_Usuario.
+-- 1.Agrega un registro de bitácora. Respeta FK_Bitacora_Usuario.
 -- SI @FechaHora ES NULL SE USA LA FECHA Y HORA ACTUAL (VALOR POR DEFECTO DE LA TABLA)
 CREATE OR ALTER PROCEDURE VidaU.sp_Bitacora_Agregar
     @idUsuario     INT,
@@ -38,7 +38,7 @@ BEGIN
 END
 GO
  
--- Actualiza un registro de bitácora existente.
+-- 2.Actualiza un registro de bitácora existente.
 -- SI @FechaHora ES NULL SE CONSERVA LA FECHA Y HORA ACTUAL DEL REGISTRO
 CREATE OR ALTER PROCEDURE VidaU.sp_Bitacora_Actualizar
     @idBitacora    INT,
@@ -77,7 +77,7 @@ BEGIN
 END
 GO
  
--- Elimina un registro de bitácora. Si otra tabla lo referencia, se informa el error.
+-- 3.Elimina un registro de bitácora. Si otra tabla lo referencia, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Bitacora_Eliminar
     @idBitacora INT
 AS
@@ -104,17 +104,30 @@ BEGIN
 END
 GO
  
--- Consulta un registro de bitácora por id, o todos si @idBitacora es NULL.
--- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+-- 4.Lista todos.
 CREATE OR ALTER PROCEDURE VidaU.sp_Bitacora_Consultar
-    @idBitacora INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idBitacora, idUsuario, Accion, TablaAfectada, FechaHora, Descripcion
     FROM VidaU.Bitacora
-    WHERE (@idBitacora IS NULL OR idBitacora = @idBitacora)
     ORDER BY idBitacora;
 END
 GO
+-- 5. Consulta un registro de bitácora por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Bitacora_ConsultarPorId
+    @idBitacora INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Bitacora WHERE idBitacora = @idBitacora)
+        THROW 50002, 'El registro de bitácora indicado no existe.', 1;
+
+    SELECT idBitacora, idUsuario, Accion, TablaAfectada, FechaHora, Descripcion
+    FROM VidaU.Bitacora
+    WHERE idBitacora = @idBitacora;
+END
 GO

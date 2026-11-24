@@ -3,7 +3,7 @@ GO
 
 /* "Leccion" */
  
--- Agrega una lección nueva. Respeta FK_Leccion_Curso, FK_Leccion_Profesor y CK_Leccion_Cupo (Cupo > 0).
+-- 1.Agrega una lección nueva. Respeta FK_Leccion_Curso, FK_Leccion_Profesor y CK_Leccion_Cupo (Cupo > 0).
 CREATE OR ALTER PROCEDURE VidaU.sp_Leccion_Agregar
     @idCurso    INT,
     @idProfesor INT,
@@ -41,7 +41,7 @@ BEGIN
 END
 GO
  
--- Actualiza los datos de una lección existente.
+-- 2.Actualiza los datos de una lección existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Leccion_Actualizar
     @idLeccion  INT,
     @idCurso    INT,
@@ -85,7 +85,7 @@ BEGIN
 END
 GO
  
--- Elimina una lección. Si está referenciada por Resennia u otras tablas, se informa el error.
+-- 3.Elimina una lección. Si está referenciada por Resennia u otras tablas, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Leccion_Eliminar
     @idLeccion INT
 AS
@@ -112,17 +112,32 @@ BEGIN
 END
 GO
  
--- Consulta una lección por id, o todas si @idLeccion es NULL.
+-- 4.Listar todos
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Leccion_Consultar
-    @idLeccion INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idLeccion, idCurso, idProfesor, Horario, Aula, Cupo
     FROM VidaU.Leccion
-    WHERE (@idLeccion IS NULL OR idLeccion = @idLeccion)
     ORDER BY idLeccion;
 END
 GO
+
+-- 5. Consulta una lección por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Leccion_ConsultarPorId
+    @idLeccion INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Leccion WHERE idLeccion = @idLeccion)
+        THROW 50002, 'La lección indicada no existe.', 1;
+
+    SELECT idLeccion, idCurso, idProfesor, Horario, Aula, Cupo
+    FROM VidaU.Leccion
+    WHERE idLeccion = @idLeccion;
+END
 GO

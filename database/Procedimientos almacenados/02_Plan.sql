@@ -3,7 +3,7 @@ GO
 
 /* "Plan" */
  
--- Agrega un plan nuevo. Respeta CK_Plan_Monto (Monto >= 0).
+-- 1.Agrega un plan nuevo. Respeta CK_Plan_Monto (Monto >= 0).
 -- PLAN ES PALABRA RESERVADA, POR ESO SE ESCRIBE ENTRE CORCHETES [Plan]
 CREATE OR ALTER PROCEDURE VidaU.sp_Plan_Agregar
     @Nombre      VARCHAR(100),
@@ -34,7 +34,7 @@ BEGIN
 END
 GO
  
--- Actualiza nombre, descripción y monto de un plan existente.
+-- 2.Actualiza nombre, descripción y monto de un plan existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Plan_Actualizar
     @idPlan      INT,
     @Nombre      VARCHAR(100),
@@ -69,7 +69,7 @@ BEGIN
 END
 GO
  
--- Elimina un plan. Si tiene suscripciones relacionadas, se informa el error.
+-- 3.Elimina un plan. Si tiene suscripciones relacionadas, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Plan_Eliminar
     @idPlan INT
 AS
@@ -96,17 +96,32 @@ BEGIN
 END
 GO
  
--- Consulta un plan por id, o todos los planes si @idPlan es NULL.
+-- 4.Consulta un plan por id, o todos los planes si @idPlan es NULL.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Plan_Consultar
-    @idPlan INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idPlan, Nombre, Descripcion, Monto
     FROM VidaU.[Plan]
-    WHERE (@idPlan IS NULL OR idPlan = @idPlan)
     ORDER BY idPlan;
 END
 GO
+
+--5.Consulta un plan por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Plan_ConsultarPorId
+    @idPlan INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.[Plan] WHERE idPlan = @idPlan)
+        THROW 50002, 'El plan indicado no existe.', 1;
+
+    SELECT idPlan, Nombre, Descripcion, Monto
+    FROM VidaU.[Plan]
+    WHERE idPlan = @idPlan;
+END
 GO

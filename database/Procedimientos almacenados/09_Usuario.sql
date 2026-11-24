@@ -3,7 +3,7 @@ GO
 
 /* "Usuario" */
  
--- Agrega un usuario nuevo. Respeta FK_Usuario_Rol y UQ_Usuario_Correo.
+-- 1.Agrega un usuario nuevo. Respeta FK_Usuario_Rol y UQ_Usuario_Correo.
 -- LA CONTRASENA LLEGA EN TEXTO Y SE GUARDA CON HASHBYTES (NUNCA EN TEXTO PLANO)
 CREATE OR ALTER PROCEDURE VidaU.sp_Usuario_Agregar
     @idRol      INT,
@@ -43,7 +43,7 @@ BEGIN
 END
 GO
  
--- Actualiza los datos de un usuario existente.
+-- 2.Actualiza los datos de un usuario existente.
 -- SI @Contrasena ES NULL SE CONSERVA LA CONTRASENA ACTUAL; SI SE ENVIA, SE GUARDA SU HASH.
 CREATE OR ALTER PROCEDURE VidaU.sp_Usuario_Actualizar
     @idUsuario  INT,
@@ -90,7 +90,7 @@ BEGIN
 END
 GO
  
--- Elimina un usuario. Si está referenciado por Estudiante o Bitacora, se informa el error.
+-- 3.Elimina un usuario. Si está referenciado por Estudiante o Bitacora, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Usuario_Eliminar
     @idUsuario INT
 AS
@@ -117,18 +117,31 @@ BEGIN
 END
 GO
  
--- Consulta un usuario por id, o todos si @idUsuario es NULL.
--- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+-- 4.Consulta por todos.
 -- NO SE DEVUELVE LA COLUMNA Contrasena (HASH) POR SEGURIDAD
 CREATE OR ALTER PROCEDURE VidaU.sp_Usuario_Consultar
-    @idUsuario INT = NULL
+AS
+BEGIN
+SET NOCOUNT ON;
+SELECT idUsuario, idRol, Nombre, Apellidos, Correo
+FROM VidaU.Usuario
+ORDER BY idUsuario;
+END
+GO
+--Modificado
+--5. Consulta un usuario por id
+CREATE OR ALTER PROCEDURE VidaU.sp_Usuario_ConsultarPorId
+    @idUsuario INT
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Usuario WHERE idUsuario = @idUsuario)
+        THROW 50002, 'El usuario indicado no existe.', 1;
+
     SELECT idUsuario, idRol, Nombre, Apellidos, Correo
     FROM VidaU.Usuario
-    WHERE (@idUsuario IS NULL OR idUsuario = @idUsuario)
-    ORDER BY idUsuario;
+    WHERE idUsuario = @idUsuario;
 END
 GO
-GO
+

@@ -3,7 +3,7 @@ GO
 
 /* "Evaluacion" */
  
--- Agrega una evaluación nueva a una reseña. Respeta FK_Evaluacion_Resennia y
+-- 1.Agrega una evaluación nueva a una reseña. Respeta FK_Evaluacion_Resennia y
 -- CK_Evaluacion_Calificacion (Calificacion entre 1 y 5).
 CREATE OR ALTER PROCEDURE VidaU.sp_Evaluacion_Agregar
     @idResennia   INT,
@@ -37,7 +37,7 @@ BEGIN
 END
 GO
  
--- Actualiza los datos de una evaluación existente.
+-- 2.Actualiza los datos de una evaluación existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Evaluacion_Actualizar
     @idEvaluacion INT,
     @idResennia   INT,
@@ -74,7 +74,7 @@ BEGIN
 END
 GO
  
--- Elimina una evaluación. Si otra tabla la referencia, se informa el error.
+-- 3.Elimina una evaluación. Si otra tabla la referencia, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Evaluacion_Eliminar
     @idEvaluacion INT
 AS
@@ -101,42 +101,35 @@ BEGIN
 END
 GO
  
--- Consulta una evaluación por id, o todas si @idEvaluacion es NULL.
+-- 4. Lista las evaluaciones.
 -- @idResennia ES UN FILTRO OPCIONAL: SI SE ENVIA, SOLO DEVUELVE LAS EVALUACIONES DE ESA RESENNIA.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Evaluacion_Consultar
-    @idEvaluacion INT = NULL,
-    @idResennia   INT = NULL
+    @idResennia INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idEvaluacion, idResennia, Calificacion, Comentario
     FROM VidaU.Evaluacion
-    WHERE (@idEvaluacion IS NULL OR idEvaluacion = @idEvaluacion)
-      AND (@idResennia IS NULL OR idResennia = @idResennia)
+    WHERE (@idResennia IS NULL OR idResennia = @idResennia)
     ORDER BY idEvaluacion;
 END
 GO
- 
--- Calcula la calificación general de una reseña: promedio de las calificaciones de sus evaluaciones.
--- SI LA RESENNIA NO TIENE EVALUACIONES, EL PROMEDIO ES NULL Y EL TOTAL ES 0.
+
+-- 5. Consulta una evaluación por id. Lanza 50002 si no existe.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
-CREATE OR ALTER PROCEDURE VidaU.sp_Evaluacion_PromedioResennia
-    @idResennia INT
+CREATE OR ALTER PROCEDURE VidaU.sp_Evaluacion_ConsultarPorId
+    @idEvaluacion INT
 AS
 BEGIN
     SET NOCOUNT ON;
- 
-    IF NOT EXISTS (SELECT 1 FROM VidaU.Resennia WHERE idResennia = @idResennia)
-        THROW 50026, 'La reseña indicada no existe.', 1;
- 
-    SELECT r.idResennia,
-           CAST(AVG(e.Calificacion) AS DECIMAL(3,2)) AS CalificacionGeneral,
-           COUNT(e.idEvaluacion) AS TotalEvaluaciones
-    FROM VidaU.Resennia r
-    LEFT JOIN VidaU.Evaluacion e ON e.idResennia = r.idResennia
-    WHERE r.idResennia = @idResennia
-    GROUP BY r.idResennia;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Evaluacion WHERE idEvaluacion = @idEvaluacion)
+        THROW 50002, 'La evaluación indicada no existe.', 1;
+
+    SELECT idEvaluacion, idResennia, Calificacion, Comentario
+    FROM VidaU.Evaluacion
+    WHERE idEvaluacion = @idEvaluacion;
 END
-GO
 GO

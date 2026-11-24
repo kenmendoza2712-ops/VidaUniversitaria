@@ -3,7 +3,7 @@ GO
 
 /* "Curso" */
  
--- Agrega un curso nuevo. Respeta CK_Curso_Creditos (Creditos > 0).
+-- 1.Agrega un curso nuevo. Respeta CK_Curso_Creditos (Creditos > 0).
 CREATE OR ALTER PROCEDURE VidaU.sp_Curso_Agregar
     @Nombre      VARCHAR(150),
     @Descripcion VARCHAR(300) = NULL,
@@ -33,7 +33,7 @@ BEGIN
 END
 GO
  
--- Actualiza nombre, descripción y créditos de un curso existente.
+-- 2.Actualiza nombre, descripción y créditos de un curso existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Curso_Actualizar
     @idCurso     INT,
     @Nombre      VARCHAR(150),
@@ -68,7 +68,7 @@ BEGIN
 END
 GO
  
--- Elimina un curso. Si tiene lecciones o está en Carrera_Curso, se informa el error.
+-- 3.Elimina un curso. Si tiene lecciones o está en Carrera_Curso, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Curso_Eliminar
     @idCurso INT
 AS
@@ -95,17 +95,32 @@ BEGIN
 END
 GO
  
--- Consulta un curso por id, o todos si @idCurso es NULL.
+-- 4.Lista todos los cursos.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Curso_Consultar
-    @idCurso INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idCurso, Nombre, Descripcion, Creditos
     FROM VidaU.Curso
-    WHERE (@idCurso IS NULL OR idCurso = @idCurso)
     ORDER BY idCurso;
 END
 GO
+
+--5. Consulta un curso por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Curso_ConsultarPorId
+    @idCurso INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Curso WHERE idCurso = @idCurso)
+        THROW 50002, 'El curso indicado no existe.', 1;
+
+    SELECT idCurso, Nombre, Descripcion, Creditos
+    FROM VidaU.Curso
+    WHERE idCurso = @idCurso;
+END
 GO

@@ -3,7 +3,7 @@ GO
 
 /* "Carrera_Curso" */
  
--- Agrega la relación entre una carrera y un curso. Respeta FK_CarrCurso_Carrera,
+-- 1.Agrega la relación entre una carrera y un curso. Respeta FK_CarrCurso_Carrera,
 -- FK_CarrCurso_Curso y PK_Carrera_Curso (la misma pareja no se repite).
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Curso_Agregar
     @idCarrera INT,
@@ -37,7 +37,7 @@ BEGIN
 END
 GO
  
--- Cambia una pareja carrera-curso existente por otra pareja.
+-- 2.Cambia una pareja carrera-curso existente por otra pareja.
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Curso_Actualizar
     @idCarreraAnterior INT,
     @idCursoAnterior   INT,
@@ -79,7 +79,7 @@ BEGIN
 END
 GO
  
--- Elimina la relación entre una carrera y un curso.
+-- 3.Elimina la relación entre una carrera y un curso.
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Curso_Eliminar
     @idCarrera INT,
     @idCurso   INT
@@ -109,7 +109,7 @@ BEGIN
 END
 GO
  
--- Consulta las relaciones carrera-curso. Cada parámetro en NULL no filtra.
+-- 4. Lista las relaciones carrera-curso. Cada parámetro en NULL no filtra.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Curso_Consultar
     @idCarrera INT = NULL,
@@ -117,6 +117,7 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Curso_Consultar
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idCarrera, idCurso
     FROM VidaU.Carrera_Curso
     WHERE (@idCarrera IS NULL OR idCarrera = @idCarrera)
@@ -124,4 +125,22 @@ BEGIN
     ORDER BY idCarrera, idCurso;
 END
 GO
+
+-- 5. Consulta una relación puntual por su llave compuesta. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Curso_ConsultarPorId
+    @idCarrera INT,
+    @idCurso   INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Carrera_Curso
+                   WHERE idCarrera = @idCarrera AND idCurso = @idCurso)
+        THROW 50002, 'La relación carrera-curso indicada no existe.', 1;
+
+    SELECT idCarrera, idCurso
+    FROM VidaU.Carrera_Curso
+    WHERE idCarrera = @idCarrera AND idCurso = @idCurso;
+END
 GO

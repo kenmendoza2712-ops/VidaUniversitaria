@@ -3,7 +3,7 @@ GO
 
 /* "Suscripcion" */
  
--- Agrega una suscripción nueva. Respeta FK_Suscripcion_Universidad, FK_Suscripcion_Plan,
+-- 1.Agrega una suscripción nueva. Respeta FK_Suscripcion_Universidad, FK_Suscripcion_Plan,
 -- CK_Suscripcion_Estado y CK_Suscripcion_Fechas.
 -- SI @Estado ES NULL SE USA EL VALOR POR DEFECTO 'Activa'
 CREATE OR ALTER PROCEDURE VidaU.sp_Suscripcion_Agregar
@@ -48,7 +48,7 @@ BEGIN
 END
 GO
  
--- Actualiza los datos de una suscripción existente.
+-- 2.Actualiza los datos de una suscripción existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Suscripcion_Actualizar
     @idSuscripcion INT,
     @idUniversidad INT,
@@ -95,7 +95,7 @@ BEGIN
 END
 GO
  
--- Elimina una suscripción. Si otra tabla la referencia, se informa el error.
+-- 3.Elimina una suscripción. Si otra tabla la referencia, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Suscripcion_Eliminar
     @idSuscripcion INT
 AS
@@ -122,17 +122,32 @@ BEGIN
 END
 GO
  
--- Consulta una suscripción por id, o todas si @idSuscripcion es NULL.
+-- 4. Lista todas las suscripciones.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Suscripcion_Consultar
-    @idSuscripcion INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idSuscripcion, idUniversidad, idPlan, Estado, FechaInicio, FechaFin
     FROM VidaU.Suscripcion
-    WHERE (@idSuscripcion IS NULL OR idSuscripcion = @idSuscripcion)
     ORDER BY idSuscripcion;
 END
 GO
+
+-- 5. Consulta una suscripción por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Suscripcion_ConsultarPorId
+    @idSuscripcion INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Suscripcion WHERE idSuscripcion = @idSuscripcion)
+        THROW 50002, 'La suscripción indicada no existe.', 1;
+
+    SELECT idSuscripcion, idUniversidad, idPlan, Estado, FechaInicio, FechaFin
+    FROM VidaU.Suscripcion
+    WHERE idSuscripcion = @idSuscripcion;
+END
 GO

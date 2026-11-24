@@ -3,7 +3,7 @@ GO
 
 /* "Rol" */
  
--- Agrega un rol nuevo. Respeta UQ_Rol_Nombre (no se repite el nombre).
+-- 1.Agrega un rol nuevo. Respeta UQ_Rol_Nombre (no se repite el nombre).
 CREATE OR ALTER PROCEDURE VidaU.sp_Rol_Agregar
     @Nombre      VARCHAR(50),
     @Descripcion VARCHAR(200) = NULL
@@ -33,7 +33,7 @@ BEGIN
 END
 GO
  
--- Actualiza el nombre y la descripción de un rol existente.
+-- 2.Actualiza el nombre y la descripción de un rol existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Rol_Actualizar
     @idRol       INT,
     @Nombre      VARCHAR(50),
@@ -65,7 +65,7 @@ BEGIN
 END
 GO
  
--- Elimina un rol. Si está referenciado por otras tablas (ej. Usuario), se informa el error.
+-- 3.Elimina un rol. Si está referenciado por otras tablas (ej. Usuario), se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Rol_Eliminar
     @idRol INT
 AS
@@ -92,17 +92,30 @@ BEGIN
 END
 GO
  
--- Consulta un rol por id, o todos los roles si @idRol es NULL.
--- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+-- 4 Lista todos los roles
 CREATE OR ALTER PROCEDURE VidaU.sp_Rol_Consultar
-    @idRol INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idRol, Nombre, Descripcion
     FROM VidaU.Rol
-    WHERE (@idRol IS NULL OR idRol = @idRol)
     ORDER BY idRol;
 END
 GO
+
+-- 5.Devuelve un solo rol. Lanza 50002 si no existe.
+CREATE OR ALTER PROCEDURE VidaU.sp_Rol_ConsultarPorId
+    @idRol INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Rol WHERE idRol = @idRol)
+        THROW 50002, 'El rol indicado no existe.', 1;
+
+    SELECT idRol, Nombre, Descripcion
+    FROM VidaU.Rol
+    WHERE idRol = @idRol;
+END
 GO

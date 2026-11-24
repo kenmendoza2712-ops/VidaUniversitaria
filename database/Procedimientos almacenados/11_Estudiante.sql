@@ -3,7 +3,7 @@ GO
 
 /* "Estudiante" */
  
--- Agrega un estudiante nuevo. Respeta FK_Estudiante_Usuario, UQ_Estudiante_Usuario (1:1 con Usuario),
+-- 1.Agrega un estudiante nuevo. Respeta FK_Estudiante_Usuario, UQ_Estudiante_Usuario (1:1 con Usuario),
 -- UQ_Estudiante_Carnet y CK_Estudiante_AnnoIngreso (AnnoIngreso >= 2000).
 CREATE OR ALTER PROCEDURE VidaU.sp_Estudiante_Agregar
     @idUsuario   INT,
@@ -45,7 +45,7 @@ BEGIN
 END
 GO
  
--- Actualiza los datos de un estudiante existente.
+-- 2.Actualiza los datos de un estudiante existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Estudiante_Actualizar
     @idEstudiante INT,
     @idUsuario    INT,
@@ -90,7 +90,7 @@ BEGIN
 END
 GO
  
--- Elimina un estudiante. Si está en Carrera_Estudiante, Matricula o Resennia, se informa el error.
+-- 3.Elimina un estudiante. Si está en Carrera_Estudiante, Matricula o Resennia, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Estudiante_Eliminar
     @idEstudiante INT
 AS
@@ -117,17 +117,31 @@ BEGIN
 END
 GO
  
--- Consulta un estudiante por id, o todos si @idEstudiante es NULL.
+-- 4. Lista todos los estudiantes.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Estudiante_Consultar
-    @idEstudiante INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idEstudiante, idUsuario, Carnet, Carrera, AnnoIngreso
     FROM VidaU.Estudiante
-    WHERE (@idEstudiante IS NULL OR idEstudiante = @idEstudiante)
     ORDER BY idEstudiante;
 END
 GO
+-- 5. Consulta un estudiante por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Estudiante_ConsultarPorId
+    @idEstudiante INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Estudiante WHERE idEstudiante = @idEstudiante)
+        THROW 50002, 'El estudiante indicado no existe.', 1;
+
+    SELECT idEstudiante, idUsuario, Carnet, Carrera, AnnoIngreso
+    FROM VidaU.Estudiante
+    WHERE idEstudiante = @idEstudiante;
+END
 GO

@@ -89,14 +89,28 @@ GO
 -- Consulta una carrera por id, o todas si @idCarrera es NULL.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Consultar
-    @idCarrera INT = NULL
+    AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT idPlan, Nombre, Descripcion, Monto
+    FROM VidaU.[Plan]
+    ORDER BY idPlan;
+END
+GO
+-- 5. Consulta un plan por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Plan_ConsultarPorId
+    @idPlan INT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT idCarrera, Nombre, Descripcion
-    FROM VidaU.Carrera
-    WHERE (@idCarrera IS NULL OR idCarrera = @idCarrera)
-    ORDER BY idCarrera;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.[Plan] WHERE idPlan = @idPlan)
+        THROW 50002, 'El plan indicado no existe.', 1;
+
+    SELECT idPlan, Nombre, Descripcion, Monto
+    FROM VidaU.[Plan]
+    WHERE idPlan = @idPlan;
 END
-GO
 GO

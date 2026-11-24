@@ -3,7 +3,7 @@ GO
 
 /* "Sede_Carrera" */
  
--- Agrega la relación entre una sede y una carrera. Respeta FK_SedeCarr_Sede,
+-- 1.Agrega la relación entre una sede y una carrera. Respeta FK_SedeCarr_Sede,
 -- FK_SedeCarr_Carrera y PK_Sede_Carrera (la misma pareja no se repite).
 CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Carrera_Agregar
     @idSede    INT,
@@ -37,7 +37,7 @@ BEGIN
 END
 GO
  
--- Cambia una pareja sede-carrera existente por otra pareja.
+-- 2.Cambia una pareja sede-carrera existente por otra pareja.
 CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Carrera_Actualizar
     @idSedeAnterior    INT,
     @idCarreraAnterior INT,
@@ -79,7 +79,7 @@ BEGIN
 END
 GO
  
--- Elimina la relación entre una sede y una carrera.
+-- 3.Elimina la relación entre una sede y una carrera.
 CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Carrera_Eliminar
     @idSede    INT,
     @idCarrera INT
@@ -109,7 +109,7 @@ BEGIN
 END
 GO
  
--- Consulta las relaciones sede-carrera. Cada parámetro en NULL no filtra.
+-- 4. Lista las relaciones sede-carrera. Cada parámetro en NULL no filtra.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Carrera_Consultar
     @idSede    INT = NULL,
@@ -117,6 +117,7 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Carrera_Consultar
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idSede, idCarrera
     FROM VidaU.Sede_Carrera
     WHERE (@idSede IS NULL OR idSede = @idSede)
@@ -124,4 +125,22 @@ BEGIN
     ORDER BY idSede, idCarrera;
 END
 GO
+
+-- 5. Consulta una relación puntual por su llave compuesta. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Carrera_ConsultarPorId
+    @idSede    INT,
+    @idCarrera INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Sede_Carrera
+                   WHERE idSede = @idSede AND idCarrera = @idCarrera)
+        THROW 50002, 'La relación sede-carrera indicada no existe.', 1;
+
+    SELECT idSede, idCarrera
+    FROM VidaU.Sede_Carrera
+    WHERE idSede = @idSede AND idCarrera = @idCarrera;
+END
 GO

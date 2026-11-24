@@ -3,7 +3,7 @@ GO
 
 /* "Matricula" */
  
--- Agrega una matrícula nueva. Respeta FK_Matricula_Estudiante y CK_Matricula_Estado.
+-- 1.Agrega una matrícula nueva. Respeta FK_Matricula_Estudiante y CK_Matricula_Estado.
 -- SI @FechaMatricula ES NULL SE USA LA FECHA ACTUAL (SOLO FECHA, SIN HORA)
 -- SI @Estado ES NULL SE USA EL VALOR POR DEFECTO 'Matriculado'
 CREATE OR ALTER PROCEDURE VidaU.sp_Matricula_Agregar
@@ -41,7 +41,7 @@ BEGIN
 END
 GO
  
--- Actualiza los datos de una matrícula existente.
+-- 2.Actualiza los datos de una matrícula existente.
 -- SI @FechaMatricula ES NULL SE CONSERVA LA FECHA ACTUAL DEL REGISTRO
 CREATE OR ALTER PROCEDURE VidaU.sp_Matricula_Actualizar
     @idMatricula    INT,
@@ -79,7 +79,7 @@ BEGIN
 END
 GO
  
--- Elimina una matrícula. Si otra tabla la referencia, se informa el error.
+-- 3.Elimina una matrícula. Si otra tabla la referencia, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Matricula_Eliminar
     @idMatricula INT
 AS
@@ -106,17 +106,32 @@ BEGIN
 END
 GO
  
--- Consulta una matrícula por id, o todas si @idMatricula es NULL.
+-- 4. Lista todas las matrículas.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Matricula_Consultar
-    @idMatricula INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idMatricula, idEstudiante, FechaMatricula, Estado
     FROM VidaU.Matricula
-    WHERE (@idMatricula IS NULL OR idMatricula = @idMatricula)
     ORDER BY idMatricula;
 END
 GO
+
+-- 5. Consulta una matrícula por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Matricula_ConsultarPorId
+    @idMatricula INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Matricula WHERE idMatricula = @idMatricula)
+        THROW 50002, 'La matrícula indicada no existe.', 1;
+
+    SELECT idMatricula, idEstudiante, FechaMatricula, Estado
+    FROM VidaU.Matricula
+    WHERE idMatricula = @idMatricula;
+END
 GO

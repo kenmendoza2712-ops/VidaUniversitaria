@@ -3,7 +3,7 @@ GO
 
 /* "Universidad_Profesor" */
  
--- Agrega la relación entre una universidad y un profesor. Respeta FK_UnivProf_Universidad,
+-- 1.Agrega la relación entre una universidad y un profesor. Respeta FK_UnivProf_Universidad,
 -- FK_UnivProf_Profesor y PK_Universidad_Profesor (la misma pareja no se repite).
 CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Profesor_Agregar
     @idUniversidad INT,
@@ -37,7 +37,7 @@ BEGIN
 END
 GO
  
--- Cambia una pareja universidad-profesor existente por otra pareja.
+-- 2.Cambia una pareja universidad-profesor existente por otra pareja.
 CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Profesor_Actualizar
     @idUniversidadAnterior INT,
     @idProfesorAnterior    INT,
@@ -79,7 +79,7 @@ BEGIN
 END
 GO
  
--- Elimina la relación entre una universidad y un profesor.
+-- 3.Elimina la relación entre una universidad y un profesor.
 CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Profesor_Eliminar
     @idUniversidad INT,
     @idProfesor    INT
@@ -109,7 +109,7 @@ BEGIN
 END
 GO
  
--- Consulta las relaciones universidad-profesor. Cada parámetro en NULL no filtra.
+-- 4. Lista las relaciones universidad-profesor. Cada parámetro en NULL no filtra.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Profesor_Consultar
     @idUniversidad INT = NULL,
@@ -117,6 +117,7 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Profesor_Consultar
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idUniversidad, idProfesor
     FROM VidaU.Universidad_Profesor
     WHERE (@idUniversidad IS NULL OR idUniversidad = @idUniversidad)
@@ -124,4 +125,22 @@ BEGIN
     ORDER BY idUniversidad, idProfesor;
 END
 GO
+
+-- 5. Consulta una relación puntual por su llave compuesta. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Profesor_ConsultarPorId
+    @idUniversidad INT,
+    @idProfesor    INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Universidad_Profesor
+                   WHERE idUniversidad = @idUniversidad AND idProfesor = @idProfesor)
+        THROW 50002, 'La relación universidad-profesor indicada no existe.', 1;
+
+    SELECT idUniversidad, idProfesor
+    FROM VidaU.Universidad_Profesor
+    WHERE idUniversidad = @idUniversidad AND idProfesor = @idProfesor;
+END
 GO

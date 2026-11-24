@@ -3,7 +3,7 @@ GO
 
 /* "Resennia" */
  
--- Agrega una reseña nueva. Respeta FK_Resennia_Leccion, FK_Resennia_Estudiante,
+-- 1.Agrega una reseña nueva. Respeta FK_Resennia_Leccion, FK_Resennia_Estudiante,
 -- UQ_Resennia_Estudiante_Leccion (una reseña por estudiante por lección) y CK_Resennia_Estado.
 -- NombreCurso Y NombreProfesor NO LOS ENVIA EL USUARIO: SE COPIAN DESDE LA LECCION EN ESTE MOMENTO.
 -- SI @Estado ES NULL SE USA 'EnRevision'; SI @EsAnonima ES NULL SE USA 1 (ANONIMA);
@@ -35,7 +35,7 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM VidaU.Estudiante WITH (HOLDLOCK) WHERE idEstudiante = @idEstudiante) -- VALIDA LAS LLAVES FORANEAS
             THROW 50021, 'El estudiante indicado no existe.', 1;
  
-        -- OBTIENE LOS NOMBRES DESDE LA LECCION Y BLOQUEA LOS REGISTROS DURANTE LA TRANSACCION
+        -- .OBTIENE LOS NOMBRES DESDE LA LECCION Y BLOQUEA LOS REGISTROS DURANTE LA TRANSACCION
         SELECT @NombreCurso = c.Nombre,
                @NombreProfesor = LEFT(p.Nombre + ' ' + p.Apellido, 200)
         FROM VidaU.Leccion l WITH (HOLDLOCK)
@@ -66,7 +66,7 @@ BEGIN
 END
 GO
  
--- Actualiza los datos de una reseña existente.
+-- 2.Actualiza los datos de una reseña existente.
 -- NombreCurso Y NombreProfesor SON COPIAS DEL MOMENTO DE LA RESENNIA: SOLO SE VUELVEN A COPIAR
 -- DESDE LA LECCION SI CAMBIA @idLeccion; SI NO, SE CONSERVAN.
 -- SI @FechaResennia ES NULL SE CONSERVA LA FECHA ACTUAL DEL REGISTRO
@@ -136,7 +136,7 @@ BEGIN
 END
 GO
  
--- Elimina una reseña. Si tiene evaluaciones relacionadas (tabla Evaluacion), se informa el error.
+-- 3.Elimina una reseña. Si tiene evaluaciones relacionadas (tabla Evaluacion), se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Resennia_Eliminar
     @idResennia INT
 AS
@@ -163,18 +163,34 @@ BEGIN
 END
 GO
  
--- Consulta una reseña por id, o todas si @idResennia es NULL.
+-- 4. Lista todas las reseñas.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Resennia_Consultar
-    @idResennia INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idResennia, idLeccion, idEstudiante, Estado, EsAnonima,
            NombreCurso, NombreProfesor, FechaResennia
     FROM VidaU.Resennia
-    WHERE (@idResennia IS NULL OR idResennia = @idResennia)
     ORDER BY idResennia;
 END
 GO
+
+-- 5. Consulta una reseña por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Resennia_ConsultarPorId
+    @idResennia INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Resennia WHERE idResennia = @idResennia)
+        THROW 50002, 'La reseña indicada no existe.', 1;
+
+    SELECT idResennia, idLeccion, idEstudiante, Estado, EsAnonima,
+           NombreCurso, NombreProfesor, FechaResennia
+    FROM VidaU.Resennia
+    WHERE idResennia = @idResennia;
+END
 GO

@@ -3,7 +3,7 @@ GO
 
 /* "Sede" */
  
--- Agrega una sede nueva. Respeta FK_Sede_Universidad y CK_Sede_Estado.
+-- 1.Agrega una sede nueva. Respeta FK_Sede_Universidad y CK_Sede_Estado.
 -- SI @Estado ES NULL SE USA EL VALOR POR DEFECTO 'Activa'
 CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Agregar
     @idUniversidad INT,
@@ -40,7 +40,7 @@ BEGIN
 END
 GO
  
--- Actualiza los datos de una sede existente.
+-- 2.Actualiza los datos de una sede existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Actualizar
     @idSede        INT,
     @idUniversidad INT,
@@ -79,7 +79,7 @@ BEGIN
 END
 GO
  
--- Elimina una sede. Si está en Sede_Carrera u otras tablas relacionadas, se informa el error.
+-- 3.Elimina una sede. Si está en Sede_Carrera u otras tablas relacionadas, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Eliminar
     @idSede INT
 AS
@@ -106,17 +106,32 @@ BEGIN
 END
 GO
  
--- Consulta una sede por id, o todas si @idSede es NULL.
+-- 4.Consulta una sede por id, o todas si @idSede es NULL.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
-CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Consultar
-    @idSede INT = NULL
+CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Consultar
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT idSede, idUniversidad, Nombre, Estado, Direccion
-    FROM VidaU.Sede
-    WHERE (@idSede IS NULL OR idSede = @idSede)
-    ORDER BY idSede;
+
+    SELECT idProfesor, Nombre, Apellido, Correo
+    FROM VidaU.Profesor
+    ORDER BY idProfesor;
 END
 GO
+
+-- 5. Consulta un profesor por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_ConsultarPorId
+    @idProfesor INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Profesor WHERE idProfesor = @idProfesor)
+        THROW 50002, 'El profesor indicado no existe.', 1;
+
+    SELECT idProfesor, Nombre, Apellido, Correo
+    FROM VidaU.Profesor
+    WHERE idProfesor = @idProfesor;
+END
 GO

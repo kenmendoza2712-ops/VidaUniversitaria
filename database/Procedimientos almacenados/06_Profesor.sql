@@ -3,7 +3,7 @@ GO
 
 /* "Profesor" */
  
--- Agrega un profesor nuevo. Respeta UQ_Profesor_Correo (no se repite el correo).
+--1. Agrega un profesor nuevo. Respeta UQ_Profesor_Correo (no se repite el correo).
 CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Agregar
     @Nombre   VARCHAR(100),
     @Apellido VARCHAR(100),
@@ -34,7 +34,7 @@ BEGIN
 END
 GO
  
--- Actualiza nombre, apellido y correo de un profesor existente.
+-- 2. Actualiza nombre, apellido y correo de un profesor existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Actualizar
     @idProfesor INT,
     @Nombre     VARCHAR(100),
@@ -68,7 +68,7 @@ BEGIN
 END
 GO
  
--- Elimina un profesor. Si tiene lecciones o está en Universidad_Profesor, se informa el error.
+-- 3. Elimina un profesor. Si tiene lecciones o está en Universidad_Profesor, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Eliminar
     @idProfesor INT
 AS
@@ -95,17 +95,32 @@ BEGIN
 END
 GO
  
--- Consulta un profesor por id, o todos si @idProfesor es NULL.
+-- 4.Consulta un profesor por id, o todos si @idProfesor es NULL.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Consultar
-    @idProfesor INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idProfesor, Nombre, Apellido, Correo
     FROM VidaU.Profesor
-    WHERE (@idProfesor IS NULL OR idProfesor = @idProfesor)
     ORDER BY idProfesor;
 END
 GO
+
+-- 5. Consulta un profesor por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_ConsultarPorId
+    @idProfesor INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Profesor WHERE idProfesor = @idProfesor)
+        THROW 50002, 'El profesor indicado no existe.', 1;
+
+    SELECT idProfesor, Nombre, Apellido, Correo
+    FROM VidaU.Profesor
+    WHERE idProfesor = @idProfesor;
+END
 GO

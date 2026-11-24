@@ -3,7 +3,7 @@ GO
 
 /* "Carrera_Estudiante" */
  
--- Agrega la relación entre una carrera y un estudiante. Respeta FK_CarrEst_Carrera,
+-- 1.Agrega la relación entre una carrera y un estudiante. Respeta FK_CarrEst_Carrera,
 -- FK_CarrEst_Estudiante y PK_Carrera_Estudiante (la misma pareja no se repite).
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Estudiante_Agregar
     @idCarrera    INT,
@@ -37,7 +37,7 @@ BEGIN
 END
 GO
  
--- Cambia una pareja carrera-estudiante existente por otra pareja.
+-- 2.Cambia una pareja carrera-estudiante existente por otra pareja.
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Estudiante_Actualizar
     @idCarreraAnterior    INT,
     @idEstudianteAnterior INT,
@@ -79,7 +79,7 @@ BEGIN
 END
 GO
  
--- Elimina la relación entre una carrera y un estudiante.
+-- 3.Elimina la relación entre una carrera y un estudiante.
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Estudiante_Eliminar
     @idCarrera    INT,
     @idEstudiante INT
@@ -109,7 +109,7 @@ BEGIN
 END
 GO
  
--- Consulta las relaciones carrera-estudiante. Cada parámetro en NULL no filtra.
+-- 4. Lista las relaciones carrera-estudiante. Cada parámetro en NULL no filtra.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Estudiante_Consultar
     @idCarrera    INT = NULL,
@@ -117,6 +117,7 @@ CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Estudiante_Consultar
 AS
 BEGIN
     SET NOCOUNT ON;
+
     SELECT idCarrera, idEstudiante
     FROM VidaU.Carrera_Estudiante
     WHERE (@idCarrera IS NULL OR idCarrera = @idCarrera)
@@ -124,4 +125,22 @@ BEGIN
     ORDER BY idCarrera, idEstudiante;
 END
 GO
+
+-- 5. Consulta una relación puntual por su llave compuesta. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Estudiante_ConsultarPorId
+    @idCarrera    INT,
+    @idEstudiante INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Carrera_Estudiante
+                   WHERE idCarrera = @idCarrera AND idEstudiante = @idEstudiante)
+        THROW 50002, 'La relación carrera-estudiante indicada no existe.', 1;
+
+    SELECT idCarrera, idEstudiante
+    FROM VidaU.Carrera_Estudiante
+    WHERE idCarrera = @idCarrera AND idEstudiante = @idEstudiante;
+END
 GO

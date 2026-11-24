@@ -3,7 +3,7 @@ GO
 
 /* "Universidad" */
  
--- Agrega una universidad. Respeta UQ_Universidad_Correo y CK_Universidad_Estado.
+-- 1.Agrega una universidad. Respeta UQ_Universidad_Correo y CK_Universidad_Estado.
 -- SI @Estado ES NULL SE USA EL VALOR POR DEFECTO 'Activa'
 CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Agregar
     @Nombre   VARCHAR(150),
@@ -41,7 +41,7 @@ BEGIN
 END
 GO
  
--- Actualiza los datos de una universidad existente.
+-- 2.Actualiza los datos de una universidad existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Actualizar
     @idUniversidad INT,
     @Nombre        VARCHAR(150),
@@ -80,7 +80,7 @@ BEGIN
 END
 GO
  
--- Elimina una universidad. Si tiene sedes, suscripciones o profesores relacionados, se informa el error.
+-- 3.Elimina una universidad. Si tiene sedes, suscripciones o profesores relacionados, se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Eliminar
     @idUniversidad INT
 AS
@@ -107,17 +107,31 @@ BEGIN
 END
 GO
  
--- Consulta una universidad por id, o todas si @idUniversidad es NULL.
--- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+-- 4.Consulta una universidad por id, o todas si @idUniversidad es NULL.
+
 CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_Consultar
-    @idUniversidad INT = NULL
+
 AS
 BEGIN
-    SET NOCOUNT ON;
-    SELECT idUniversidad, Nombre, Correo, Estado, Telefono
+SET NOCOUNT ON;
+SELECT idUniversidad, Nombre, Correo, Estado, Telefono
     FROM VidaU.Universidad
-    WHERE (@idUniversidad IS NULL OR idUniversidad = @idUniversidad)
     ORDER BY idUniversidad;
 END
 GO
+
+-- 5.Devuelve una sola universidad. Lanza 50002 si no existe.
+CREATE OR ALTER PROCEDURE VidaU.sp_Universidad_ConsultarPorId
+    @idUniversidad INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Universidad WHERE idUniversidad = @idUniversidad)
+        THROW 50002, 'La universidad indicada no existe.', 1;
+
+    SELECT idUniversidad, Nombre, Correo, Estado, Telefono
+    FROM VidaU.Universidad
+    WHERE idUniversidad = @idUniversidad;
+END
 GO

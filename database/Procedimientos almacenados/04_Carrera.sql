@@ -3,7 +3,7 @@ GO
 
 /* "Carrera" */
  
--- Agrega una carrera nueva.
+-- 1 Agrega una carrera nueva.
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Agregar
     @Nombre      VARCHAR(150),
     @Descripcion VARCHAR(300) = NULL
@@ -29,7 +29,7 @@ BEGIN
 END
 GO
  
--- Actualiza nombre y descripción de una carrera existente.
+-- 2 Actualiza nombre y descripción de una carrera existente.
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Actualizar
     @idCarrera   INT,
     @Nombre      VARCHAR(150),
@@ -59,7 +59,7 @@ BEGIN
 END
 GO
  
--- Elimina una carrera. Si está en tablas puente (Sede_Carrera, Carrera_Curso, Carrera_Estudiante), se informa el error.
+-- 3 Elimina una carrera. Si está en tablas puente (Sede_Carrera, Carrera_Curso, Carrera_Estudiante), se informa el error.
 CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Eliminar
     @idCarrera INT
 AS
@@ -86,31 +86,35 @@ BEGIN
 END
 GO
  
--- Consulta una carrera por id, o todas si @idCarrera es NULL.
--- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
-CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Consultar
-    AS
-BEGIN
-    SET NOCOUNT ON;
+-- 4. Consulta todas las carreras registradas.
+-- Devuelve el identificador, nombre y descripción de cada carrera.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA.
 
-    SELECT idPlan, Nombre, Descripcion, Monto
-    FROM VidaU.[Plan]
-    ORDER BY idPlan;
-END
-GO
--- 5. Consulta un plan por id. Lanza 50002 si no existe.
--- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
-CREATE OR ALTER PROCEDURE VidaU.sp_Plan_ConsultarPorId
-    @idPlan INT
+CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_Consultar
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF NOT EXISTS (SELECT 1 FROM VidaU.[Plan] WHERE idPlan = @idPlan)
-        THROW 50002, 'El plan indicado no existe.', 1;
-
-    SELECT idPlan, Nombre, Descripcion, Monto
-    FROM VidaU.[Plan]
-    WHERE idPlan = @idPlan;
+    SELECT idCarrera, Nombre, Descripcion
+    FROM VidaU.Carrera
+    ORDER BY idCarrera;
 END
 GO
+--5.Consulta una carrera por id. Lanza 50002 si no existe.
+-- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
+CREATE OR ALTER PROCEDURE VidaU.sp_Carrera_ConsultarPorId
+    @idCarrera INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Carrera WHERE idCarrera = @idCarrera)
+        THROW 50002, 'La carrera indicada no existe.', 1;
+
+    SELECT idCarrera, Nombre, Descripcion
+    FROM VidaU.Carrera
+    WHERE idCarrera = @idCarrera;
+END
+GO
+
+

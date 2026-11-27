@@ -105,33 +105,33 @@ BEGIN
     END CATCH
 END
 GO
- 
--- 4.Consulta una sede por id, o todas si @idSede es NULL.
+
+
+-- 4. Consulta todas las sedes.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
-CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_Consultar
+CREATE OR ALTER PROCEDURE VidaU.sp_Sede_Consultar
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    SELECT idProfesor, Nombre, Apellido, Correo
-    FROM VidaU.Profesor
-    ORDER BY idProfesor;
+    SELECT idSede, idUniversidad, Nombre, Estado, Direccion
+    FROM VidaU.Sede;
 END
 GO
 
--- 5. Consulta un profesor por id. Lanza 50002 si no existe.
+-- 5. Consulta una sede por id. Lanza 50002 si no existe.
 -- SOLO LECTURA: NO NECESITA TRANSACCION EXPLICITA
-CREATE OR ALTER PROCEDURE VidaU.sp_Profesor_ConsultarPorId
-    @idProfesor INT
+CREATE OR ALTER PROCEDURE VidaU.sp_Sede_ConsultarPorId
+    @idSede INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF NOT EXISTS (SELECT 1 FROM VidaU.Profesor WHERE idProfesor = @idProfesor)
-        THROW 50002, 'El profesor indicado no existe.', 1;
+    IF NOT EXISTS (SELECT 1 FROM VidaU.Sede WHERE idSede = @idSede)
+        THROW 50002, 'La sede indicada no existe.', 1;
 
-    SELECT idProfesor, Nombre, Apellido, Correo
-    FROM VidaU.Profesor
-    WHERE idProfesor = @idProfesor;
+    SELECT idSede, idUniversidad, Nombre, Estado, Direccion
+    FROM VidaU.Sede
+    WHERE idSede = @idSede;
 END
 GO
